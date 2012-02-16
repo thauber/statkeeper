@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block extraHead %}
+<script src="{{MEDIA_URL}}js/statkeeper.js" type="text/javascript"></script>
+<script src="{{MEDIA_URL}}js/actions.js" type="text/javascript"></script>
+<script src="{{MEDIA_URL}}js/widgets.js" type="text/javascript"></script>
+<script src="{{MEDIA_URL}}js/jquery-ui-1.8.17.custom.min.js" type="text/javascript"></script>
+<link rel="stylesheet" href="{{MEDIA_URL}}css/jquery-ui-1.8.17.custom.css"/>
+<link rel="stylesheet" href="{{MEDIA_URL}}css/statkeeper.css"/>
+
+<script>
+    $(function() {
+        ESB.RaceImgMap = {
+            terran: "{{MEDIA_URL}}icons/Terran.png",
+            protoss: "{{MEDIA_URL}}icons/Protoss.png",
+            zerg: "{{MEDIA_URL}}icons/Zerg.png"
+        };
+        window.MatchTimer = new ESB.Timer();
+        window.MatchView = new SKMatchView({el: $("#match-content")});
+        window.QueueView = new SKActionQueueView({el: $("#action-queue")});
+        QueueView.setMatchView(MatchView);
+        MatchView.setQueueView(QueueView);
+        MatchView.render();
+//TODO        queueView.render();
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div id="match-content" class="span9"></div>
+    <div id="action-queue" class="span3"></div>
+</div>
+{% endblock %}
+
+{% block templates %}
+<script type="text/template" id="SKMatchView">
+    <div class="row">
+        <div class="player span4" id="player-left"></div>
+        <div class="span1" id="match-controls"></div>
+        <div class="player span4" id="player-right"></div>
+    </div>
+    <hr>
+    <div class="row">
+        <% if (match.get("state") == 0) { %>
+            <p class="match-hint">Add both players' names and races to publish.</p>
+        <% } else if (match.get("state") == 1) { %>
+            <p class="match-hint">Click start as soon as the match begins.</p>
+        <% } else if (match.get("state") == 2) { %>
+            <div id="action-content"></div>
+        <% } else { %>
+            <p class="match-hint">This match is finished. There is nothing left to do here.</p>
+        <% } %>
+    </div>
+</script>
+<script type="text/template" id="SKPlayer">
+    <% if(editable) { %>
+        <input type="text" class="player-name-input" value="<%= player.name %>"
+          placeholder="Add player's name..." class="xlarge"/>
+        <ul class="nav nav-pills race">
+            <li class="dropdown">
+                <a class="dropdown-toggle race-selection" data-toggle="dropdown" >
+                    <% if(raceSelectedImg) { %>
+                        <img class='selection' src='<%=raceSelectedImg%>' height='<%=size%>' width='<%=size%>'/>
+                    <% } else { %>
+                        <p class="empty-race">Race</p>
+                    <% } %>
+                    <b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu race-dropdown-menu _race_dropdown">
+                </ul>
+            </li>
+        </ul>
+    <% } else { %>
+        <p><%= player.name %></p>
+        <img class='selection' src='<%=raceSelectedImg%>' height='<%=size%>' width='<%=size%>'/>
+    <% } %>
+</script>
+<script type="text/template" id="SKRace">
+    <li><a class="_race_option" data-race="<%=race%>">
+        <img width="<%=thumbSize%>" height="<%=thumbSize%>" data-race="<%=race%>" src="<%=raceImg%>"/>
+    </a></li>
+</script>
+<script type="text/template" id="SKMatchControls">
+    <div id="next-state-button">
+    <% switch (match.get('state')){
+        case 0: %>
+            <a class="btn btn-primary">Publish</a>
+    <%      break;
+        case 1: %>
+            <a class="btn btn-success">Start</a>
+    <%      break;
+        case 2: %>
+            <p class="timer"><%=timer.displayClock()%></p>
+            <a class="btn btn-danger">End</a>
+    <%      break;
+        case 3: %>
+            <a class="btn btn-disabled">Finished</a>
+    <%      break;
+    }%>
+    </div>
+</script>
+<script type="text/template" id="SKActionControlView">
+    <div class="span3 match-control-group" id="left-player-actions">
+        <% for (var i=0; i < playerActions.length; i++) { %>
+            <div><a class="btn match-control player" 
+                    data-action="<%=playerActions[i].id%>"
+                    data-name="<%=playerActions[i].name%>"
+                    data-player="left">
+                <%=playerActions[i].name%>
+            </a></div>
+        <% } %>
+    </div>
+    <div class="span3 match-control-group" id="playerless-actions">
+        <% for (var i=0; i < nonPlayerActions.length; i++) { %>
+            <div><a class="btn match-control nonplayer" 
+                    data-action="<%=nonPlayerActions[i].id%>"
+                    data-name="<%=nonPlayerActions[i].name%>">
+                <%=nonPlayerActions[i].name%>
+            </a></div>
+        <% } %>
+    </div>
+    <div class="span3 match-control-group" id="right-player-actions">
+        <% for (var i=0; i < playerActions.length; i++) { %>
+            <div><a class="btn match-control player" 
+                    data-action="<%=playerActions[i].id%>"
+                    data-name="<%=playerActions[i].name%>"
+                    data-player="right">
+                <%=playerActions[i].name%>
+            </a></div>
+        <% } %>
+    </div>
+</script>
+
+<script type="text/template" id="SKActionView">
+    <div class="span6">
+        <h2 class="action-title">
+            <% if (action.get("actor")) { %>
+                <span class="actor">[<%=action.get("actor").name%>]</span>
+            <% } %>
+            <%=action.get("name")%>
+        </h2>
+    </div>
+    <div class="span3">
+        <div class="btn-group">
+            <a id="prev-pane" class="action-controls btn <%=prevButtonClass%>">
+                <i class="icon-chevron-left"></i> <%=prevButtonText%>
+            </a>
+            <a id="queue" class="btn action-controls">
+                <i class="icon-pause"></i> Queue
+            </a>
+            <a id="next-pane" class="action-controls btn <%=nextButtonClass%>">
+                <%=nextButtonText%> <i class="icon-chevron-right"></i></a>
+        </div>
+    </div>
+    <hr class="dashed span9"/>
+    <!--
+    <div class="span9">
+        <textarea class="story span9" placeholder="Add a story..."><%=story%></textarea>
+    </div>
+    -->
+    <div class="span9"><div class="row" id="action-pane">
+    </div></div>
+</script>
+<script type="text/template" id="SKArmoryView">
+        <div class="span3 armory-search-container">
+            <h4>Search:</h4>
+            <input type="text" class="armory-search span3">
+            <ul class="armory-search-results dropdown-menu"></ul>
+        </div>
+        <div class="span6">
+            <%
+            var icon;
+            var group;
+            for (var type in elements) {
+                group = elements[type];
+                if (group) {
+            %>
+                <h4><%=type[0].toUpperCase() + type.substr(1)%>:</h4>
+            <%
+                    for (var i=0; i < elements[type].length; i++) { 
+                        icon = elements[type][i].toLowerCase().replace(new RegExp('[ -]', 'g'), '_')
+            %>
+                <img class="armory-icon"
+                     data-name="<%=elements[type][i]%>"
+                     src="{{MEDIA_URL}}/sc2/icons/<%=icon%>.gif"/>
+            <%
+                    }
+                }
+            }
+            %>
+        </div>
+    </div>
+</script>
+<script type="text/template" id="SKArmoryViewResults">
+    <% for (var i=0; i < results.length; i++) { %>
+        <li><a 
+            class="
+            armory-search-result
+           <% if (i==resultIndex) { %> selected <% } %>
+            "
+            data-name="<%=results[i]%>"
+        >
+            <%=results[i]%>
+        </a></li>
+    <% } %>
+</script>
+<script type="text/template" id="SKArmoryQuantityView">
+    <div class="span9 quantity-row"><div class="row">
+        <div class="span3 quantity-info">
+            <% var icon = type.toLowerCase().replace(new RegExp('[ -]', 'g'), '_') %>
+            <img src="{{MEDIA_URL}}/sc2/icons/<%=icon%>.gif"/>
+            <h2 class="quantity-name"><%-type%></h2>
+        </div>
+        <div class="span6 quantity-controls">
+            <div class="btn-group estimates">
+                <a 
+                    data-estimate="5" 
+                    class="btn quantity-estimate
+                    <% if (estimate==5) { %> active <% } %>">
+                    &gt;=30
+                </a>
+                <a 
+                    data-estimate="4" 
+                    class="btn quantity-estimate
+                    <% if (estimate==4) { %> active <% } %>">
+                    &asymp;20
+                </a>
+                <a 
+                    data-estimate="3" 
+                    class="btn quantity-estimate
+                    <% if (estimate==3) { %> active <% } %>">
+                    &asymp;10
+                </a>
+                <a  
+                    data-estimate="2" 
+                    class="btn quantity-estimate
+                    <% if (estimate==2) { %> active <% } %>">
+                    &asymp;5
+                </a>
+                <a  
+                    data-estimate="1" 
+                    class="btn quantity-estimate
+                    <% if (estimate==1) { %> active <% } %>">
+                    &lt;5
+                </a>
+            </div>
+            <a class="remove btn btn-danger">&times;</a>
+        </div>
+    </div></div>
+</script>
+<script type="text/template" id='SKPaneSupplyUpdate'></script>
+<script type="text/template"  id='SKPanePositioning'></script>
+<script type="text/template" id='SKPaneUnitComposition'>
+    <div class="span12">
+        <h3><%-title%></h3>
+    </div>
+    <div id="quantities">
+    </div>
+    <div id="armory">
+    </div>
+</script>
+<script type="text/template" id="SKActionQueueView">
+    <% 
+    var i, length, actionOptions;
+    for (i=0, length=actionOptionsList.length; i < length; i++) {
+        actionOptions = actionOptionsList[i];
+    %>
+        <div class="alert fade in queue-action">
+            <p class="action-time">
+                <%=ESB.Timer.displayClock(actionOptions.action.get('started_at'))%>
+            </p>
+            <h3><%=actionOptions.action.get("name")%></h3>
+            <p class="action-status"><%=actionOptions.statusText%></p>
+            <div class="action-control-container">
+                <% 
+                if (actionOptions.action.get('stage')!="won") {
+                    var j, bLength, button;
+                    for (j=0, bLength=actionOptions.buttons.length; j<bLength; j++) {
+                        button = actionOptions.buttons[j];
+                %>
+                        <a class="btn" data-stage="<%=button.stage%>" data-action-index="<%=i%>">
+                            <%=button.text%>
+                        </a>
+                <%
+                    }
+                } else {
+                %>
+                    <p>Who won?</p>
+                    <div class="win-bar" data-action-index="<%=i%>"></div>
+                    <a class="btn" data-stage="finished" data-action-index="<%=i%>">
+                        Done
+                    </a>
+                <%
+                }
+                %>
+            </div>
+        </div>
+    <% } %>
+</script>
+{% endblock %}

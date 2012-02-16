@@ -1,0 +1,219 @@
+div.dropdown a {
+    padding: 8px;
+    margin: 2px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+div.dropdown a:hover {
+    text-decoration: none;
+    background-color: #EEE;
+}
+.race-dropdown-menu {
+    width: 66px;
+    max-width: 66px;
+    min-width: 66px;
+}
+#content {
+    height: 500px;
+}
+.player {
+    margin-top: 20px;
+}
+.player input {
+    float:left;
+    width: 280px;
+    margin: 10px;
+}
+.player p {
+    float:left;
+    width: 280px;
+    margin: 15px;
+}
+#player-left {
+    background-color: #BBF;
+}
+#player-right {
+    background-color: #FBB;
+}
+.race-selection p {
+    margin: 0px;
+    margin-top: 5px;
+    float: left;
+    width: 30px;
+}
+a.dropdown-toggle.race-selection {
+    height: 28px;
+    padding: 3px 6px;
+    margin-top: 6px;
+}
+a.dropdown-toggle.race-selection b.caret {
+    margin-top: 10px;
+}
+ul.nav.pills.race {
+    margin-bottom: 0px;
+}
+#next-state-button {
+    text-align: center;
+}
+#next-state-button .btn{
+    margin-top: 30px;
+}
+#next-state-button .btn-danger.btn{
+    margin-top: 0px;
+}
+.timer {
+    margin: 20px 0px 0px;
+}
+.player.uneditable img {
+    padding-top: 8px;
+}
+.player.uneditable p {
+    width: 300px;
+    font-weight: bold;
+    font-size: 18px;
+}
+.match-hint {
+    text-align: center;
+}
+#action-content .match-control-group{
+    text-align: center;
+}
+#action-content .player.match-control {
+    margin-top: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 5px 40px;
+    width: 187px;
+}
+
+#action-content .nonplayer.match-control {
+    margin-top: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 5px 5px;
+    margin-left: -5px;
+}
+
+#action-content .story {
+    margin-top: 10px;
+}
+#action-content .actor {
+    color: gray;
+    margin-bottom: 10px;
+    font-size: 20px;
+}
+.dashed {
+    border-top: dashed darkGray 1px;
+}
+.armory-icon {
+    width:44px;
+}
+.armory-search-results {
+    list-style-type: none;
+    margin: 0px;
+    padding: 5px;
+    position: absolute;
+    top: 50px;
+    display: initial;
+    width: 290px;
+    max-width: 290px;
+    min-width: 290px;
+}
+.armory-search-container {
+    position: relative;
+}
+a.selected {
+    background-color: darkgray;   
+}
+.btn.quantity-estimate {
+    font-size: 24px;
+    font-weight: bold;
+    padding: 5px 30px;
+}
+.btn.quantity-adjuster {
+    font-size: 24px;
+    font-weight: bold;
+    padding: 5px 10px;
+}
+input.quantity {
+    float: left;
+    width: 40px;
+    font-size: 24px;
+    height: 31px;
+    text-align: right;
+}
+.quantity-controls .btn-group {
+    padding: 10px 10px 10px 0px;
+    float: left;
+}
+.quantity-row {
+   background-color: #EEE;
+   padding: 10px 0px;
+   margin-bottom: 10px;
+}
+.quantity-name {
+    padding-left: 10px;
+}
+.remove-container {
+   padding-top:13px; 
+}
+.remove.btn {
+    padding: 0px 13px 4px 13px;
+    font-size: 20px;
+    font-weight: bold;
+    margin: 15px 5px;
+    float: left;
+}
+.btn {
+    line-height: normal;
+}
+.action-controls {
+    font-size: 18px;
+}
+.action-controls i {
+    font-size: 18px;
+    margin-top: 4px;
+}
+.quantity-info img {
+    float: right;
+}
+#action-queue {
+    margin-top: 20px;
+}
+.queue-action {
+    position: relative;
+    padding: 10px;
+}
+.queue-action .action-time {
+    float: right;
+}
+.queue-action .action-status {
+    font-style: italic;
+}
+.queue-action .action-control-container {
+    text-align: right;
+}
+.queue-action .action-control-container p {
+    text-align: left;
+}
+.win-bar .ui-slider-range {
+    background: #66F;
+    -webkit-border-bottom-left-radius: 10px;
+    -webkit-border-top-left-radius: 10px;
+    -moz-border-radius-bottomright: 10px;
+    -moz-border-radius-bottomleft: 10px;
+    border-bottom-left-radius: 10px;
+    border-top-left-radius: 10px;
+}
+.win-bar.ui-slider {
+    background: #F66;
+    height: 20px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    border-radius: 10px;
+    margin: 10px 0px;
+}
+.win-bar .ui-slider-handle {
+    height: 25px;
+}
