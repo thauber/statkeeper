@@ -1,60 +1,98 @@
 $(function() {
 
 SKAction = Backbone.Model.extend({
+    /*
+     * action_type
+     * results
+     * reinforcements_at
+     * started_at
+     * finished_at
+     * winner
+     * win_value
+     */
     defaults: {
-        stage: "inprogress",
         winner: null,
-        winValue: 0,
+        win_value: 0,
     },
-    initialize: function() {
+    initialize: function(attrs, options) {
         this.set("reinforcements_at", []);
-        this.results = [];
+        this.set("results", []);
+        this.set("stage", SKAction.Stages.inprogress);
+        this.name = options.name;
+        this.battle = options.battle;
+        this.on("sync", this.doQueuedSave, this);
+        this.on("change:stage", this.queueSave, this);
     },
     addResult: function(result, index) {
-        this.results.splice(index, 1, result); 
+        this.get("results").splice(index, 1, result); 
     },
     addReinforcements: function(time) {
         this.get("reinforcements_at").push(time);
+    },
+    urlRoot: function() {
+        return "/matches/" + MatchView.match.id + "/actions/"
+    },
+    queueSave: function() {
+        if (this.saving) {
+            this.queued = true;
+        } else {
+            this.doQueuedSave();
+        }
+    },
+    doQueuedSave: function() {
+        this.queued = false;
+        this.saving = true;
+        unsetSaving = _.bind(function() {
+            this.saving = false;
+        }, this);
+        var options = {
+            success: unsetSaving,
+            error: unsetSaving
+        }
+        this.save({}, options);
     }
 }); 
 
-SKAction.createAction = function(id, side) {
+SKAction.createAction = function(action_type, side) {
 //TODO add started to action
     var actions = SKAction.playerActions.concat(SKAction.nonPlayerActions);
     var i, length, action;
     for (i=0, length=actions.length; i < length; i++) {
         action = actions[i];
-        if (action.id == id) {
+        if (action.action_type == action_type) {
             break;
         }
     }
-    var actionOptions = {started_at: MatchTimer.time};
+    var actionAttrs = {started_at: MatchTimer.time};
     if (side) {
-        actionOptions.side = side;
+        actionAttrs.side = side;
     }
-    actionOptions = $.extend(true, actionOptions, action);
-    return new SKAction(actionOptions);
+    actionAttrs.action_type = action.action_type;
+    return new SKAction(actionAttrs, action);
 }
 
 SKAction.Stages = {
-    inprogress  : "inprogress", // Currently being worked on.
-    reinforcing : "reinforcing",// Has been worked on but the reinforcements are being added.
-    queued      : "queued",     // Queued, but not complete.
-    ongoing     : "ongoing",    // Some actions are ongoing like engagements.
-    won         : "won",        // Game is won, but the winner has not been set.
-    finished    : "finished",   // Completely done no more info needed. can revert to inprogress.
-    hidden      : "hidden"      // No longer showing up in the queue.
+    inprogress  : "inprogress",   // Currently being worked on.
+    reinforcing : "reinforcing",  // reinforcements are being added.
+    queued      : "queued",       // Queued, but not complete.
+    ongoing     : "ongoing",      // Some actions are ongoing like engagements.
+    won         : "won",          // Game is won, but the winner has not been set.
+    finished    : "finished",     // Completely done no more info needed.
+    hidden      : "hidden"        // No longer showing up in the queue.
+}
+
+SKAction.ActionMap = {
+    baseInvaded: "base_invaded",
+    harrassment: "harrassment",
+    engagement: "engagement"
 }
 
 SKAction.playerActions = [
-    //{name: "Base Built", id: 1, battle: false},
-    //{name: "Base Destroyed", id:2, battle: false},
-    {name: "Base Invaded", id:3, battle: true},
-    {name: "Harassment", id:4, battle: true},
-    //{name: "Macro", id:5, battle: false}
+    {name: "Base Invaded", action_type:SKAction.ActionMap.baseInvaded, battle: true},
+    {name: "Harassment", action_type:SKAction.ActionMap.baseInvaded, battle: true}
 ];
 SKAction.nonPlayerActions = [
-    {name:"Engagement", id:6, battle: true}
+    {name:"Engagement", action_type:SKAction.ActionMap.baseInvaded, battle: true}
 ];
 
 SKActionView = Backbone.View.extend({
@@ -67,8 +105,6 @@ SKActionView = Backbone.View.extend({
     initialize: function() {
         this.action = this.options.action;
         this.match = this.options.match;
-        this.leftPlayer = this.options.left;
-        this.rightPlayer = this.options.right;
         this.actor = this.options.actor;
         this.receiver = this.options.receiver;
         this.paneIndex = 0;
@@ -152,12 +188,12 @@ SKActionView = Backbone.View.extend({
         for (i=0, length=this.action.get("reinforcements_at").length; i < length; i++) {
             this.panes = this.panes.concat(this.createReinforcementPanes());
         }
-        for (i=0, length=this.action.results.length; i < length; i++) {
+        for (i=0, length=this.action.get("results").length; i < length; i++) {
             pane = this.panes[i];
-            result = this.action.results[i];
+            result = this.action.get("results")[i];
             pane.setResult(result);
         }
-        this.paneIndex = Math.min(this.action.results.length, this.panes.length-1);
+        this.paneIndex = Math.min(this.action.get("results").length, this.panes.length-1);
     },
     destroy: function() {
         this.undelegateEvents();
@@ -166,53 +202,43 @@ SKActionView = Backbone.View.extend({
 
 SKActionView.createActionView = function(options) {
     var side = options.action.get('side');
-    options.actor = options[side];
-    options.receiver = options[side=="left"?"right":"left"];
-    switch (options.action.get('id')) {
-        case 1:
+    options.actor = options.match.rightPlayer;
+    options.receiver = options.match.leftPlayer;
+    if (side == "left") {
+        options.actor = options.match.leftPlayer;
+        options.receiver = options.match.rightPlayer;
+    }
+    switch (options.action.get('action_type')) {
+        case SKAction.ActionMap.baseBuilt:
             return new SKActionBaseBuilt(options);
-        case 2:
+        case SKAction.ActionMap.baseDestroyed:
             return new SKActionBaseDestroyed(options);
-        case 3:
+        case SKAction.ActionMap.baseDestroyed:
             return new SKActionBaseInvaded(options);
-        case 4:
+        case SKAction.ActionMap.baseInvaded:
             return new SKActionHarassment(options);
-        case 5:
+        case SKAction.ActionMap.harassment:
             return new SKActionMacro(options);
-        case 6:
+        case SKAction.ActionMap.engagement:
             return new SKActionEngagement(options);
     }
 }
 
 /* Actions */
-
-/*
- * Unused currently
-SKActionBaseBuilt = SKActionView.extend({
-    buildPanes: function() {
-        this.panes = []
-    }
-});
-SKActionBaseDestroyed = SKActionView.extend({
-    buildPanes: function() {
-        this.panes = []
-    }
-});
-*/
 SKActionBaseInvaded = SKActionView.extend({
     buildPanes: function() {
         this.panes = [
             new SKPaneUnitComposition({
-                title: this.actor.name + "'s Army",
+                title: this.actor.get("name") + "'s Army",
                 armory: {
-                    units: SKArmoryView.Units[this.actor.race]
+                    units: SKArmoryView.Units[this.actor.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
-                title: this.receiver.name + "'s Defenses",
+                title: this.receiver.get("name") + "'s Defenses",
                 armory: {
-                    units: SKArmoryView.Units[this.receiver.race],
-                    structures: SKArmoryView.Units[this.receiver.structures]
+                    units: SKArmoryView.Units[this.receiver.get("race")],
+                    structures: SKArmoryView.Structures[this.receiver.get("race")]
                 }
             })
         ];
@@ -220,35 +246,36 @@ SKActionBaseInvaded = SKActionView.extend({
     createReinforcementPanes: function() {
         return [
             new SKPaneUnitComposition({
-                title: this.actor.name + "'s Reinforcements",
+                title: this.actor.get("name") + "'s Reinforcements",
                 armory: {
-                    units: SKArmoryView.Units[this.actor.race]
+                    units: SKArmoryView.Units[this.actor.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
-                title: this.receiver.name + "'s Reinforcements",
+                title: this.receiver.get("name") + "'s Reinforcements",
                 armory: {
-                    units: SKArmoryView.Units[this.receiver.race],
-                    structures: SKArmoryView.Units[this.receiver.structures]
+                    units: SKArmoryView.Units[this.receiver.get("race")],
+                    structures: SKArmoryView.Structures[this.receiver.structures]
                 }
             })
         ];
     }
 });
+
 SKActionHarassment = SKActionView.extend({
     buildPanes: function() {
         this.panes = [
             new SKPaneUnitComposition({
-                title: this.actor.name + "'s Harassment",
+                title: this.actor.get("name") + "'s Harassment",
                 armory: {
-                    units: SKArmoryView.Units[this.actor.race]
+                    units: SKArmoryView.Units[this.actor.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
-                title: this.receiver.name + "'s Defenses",
+                title: this.receiver.get("name") + "'s Defenses",
                 armory: {
-                    units: SKArmoryView.Units[this.receiver.race],
-                    structures: SKArmoryView.Units[this.receiver.structures]
+                    units: SKArmoryView.Units[this.receiver.get("race")],
+                    structures: SKArmoryView.Structures[this.receiver.get("race")]
                 }
             })
         ];
@@ -256,21 +283,22 @@ SKActionHarassment = SKActionView.extend({
     createReinforcementPanes: function() {
         return [
             new SKPaneUnitComposition({
-                title: this.actor.name + "'s Reinforcements",
+                title: this.actor.get("name") + "'s Reinforcements",
                 armory: {
-                    units: SKArmoryView.Units[this.actor.race]
+                    units: SKArmoryView.Units[this.actor.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
-                title: this.receiver.name + "'s Reinforcements",
+                title: this.receiver.get("name") + "'s Reinforcements",
                 armory: {
-                    units: SKArmoryView.Units[this.receiver.race],
-                    structures: SKArmoryView.Units[this.receiver.structures]
+                    units: SKArmoryView.Units[this.receiver.get("race")],
+                    structures: SKArmoryView.Structures[this.receiver.structures]
                 }
             })
         ];
     }
 });
+
 /*
 SKActionMacro = SKActionView.extend({
     buildPanes: function() {
@@ -278,19 +306,20 @@ SKActionMacro = SKActionView.extend({
     }
 });
 */
+
 SKActionEngagement = SKActionView.extend({
     buildPanes: function() {
         this.panes = [
             new SKPaneUnitComposition({
-                title: this.leftPlayer.name + "'s Army",
+                title: this.match.leftPlayer.get("name") + "'s Army",
                 armory: {
-                    units: SKArmoryView.Units[this.leftPlayer.race]
+                    units: SKArmoryView.Units[this.match.leftPlayer.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
-                title: this.rightPlayer.name + "'s Army",
+                title: this.match.rightPlayer.get("name") + "'s Army",
                 armory: {
-                    units: SKArmoryView.Units[this.rightPlayer.race]
+                    units: SKArmoryView.Units[this.match.rightPlayer.get("race")]
                 }
             })
         ];
@@ -298,15 +327,15 @@ SKActionEngagement = SKActionView.extend({
     createReinforcementPanes: function() {
         return [
             new SKPaneUnitComposition({
-                title: this.leftPlayer.name + "'s Reinforcements",
+                title: this.match.leftPlayer.get("name") + "'s Reinforcements",
                 armory: {
-                    units: SKArmoryView.Units[this.leftPlayer.race]
+                    units: SKArmoryView.Units[this.match.leftPlayer.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
-                title: this.rightPlayer.name + "'s Reinforcements",
+                title: this.match.rightPlayer.get("name") + "'s Reinforcements",
                 armory: {
-                    units: SKArmoryView.Units[this.rightPlayer.race]
+                    units: SKArmoryView.Units[this.match.rightPlayer.get("race")]
                 }
             })
         ];
@@ -459,15 +488,15 @@ SKActionQueueView = Backbone.View.extend({
     },
     getActionOptions: function(action) {
         switch(action.get('stage')) {
-            case "queued":
+            case SKAction.Stages.queued:
                 return {
                     buttons: [{stage: SKAction.Stages.inprogress, text: "Work On"}],
                     statusText: "Queued...",
                     action: action
                 }
-            case "ongoing":
+            case SKAction.Stages.ongoing:
                 var finishAction;
-                if (action.get("battle")) {
+                if (action.battle) {
                     finishAction = SKAction.Stages.won;
                 } else {
                     finishAction = SKAction.Stages.finished;
@@ -481,12 +510,12 @@ SKActionQueueView = Backbone.View.extend({
                     statusText: "Ongoing...",
                     action: action
                 }
-            case "won":
+            case SKAction.Stages.won:
                 return {
                     statusText: "Finshed...",
                     action: action
                 }
-            case "finished":
+            case SKAction.Stages.finished:
                 return {
                     buttons: [
                         {stage: SKAction.Stages.inprogress, text: "Work On"},
@@ -502,7 +531,6 @@ SKActionQueueView = Backbone.View.extend({
         var stage = button.data('stage');
         var index = button.data('action-index');
         var action = this.actions[index];
-        action.set("stage", stage);
         switch (stage) {
             case SKAction.Stages.inprogress:
                 this.actions.splice(index, 1);
@@ -514,7 +542,9 @@ SKActionQueueView = Backbone.View.extend({
                 this.trigger("reinforceAction", action);
                 break;
             case SKAction.Stages.finished:
-                if (action.get('battle')) {
+                var winner;
+                var winValue;
+                if (action.battle) {
                     if (action.winValue == 3) {
                         winner = "tie";
                         winValue = 0;
@@ -525,7 +555,7 @@ SKActionQueueView = Backbone.View.extend({
                         winner = "right";
                         winValue = (action.winValue - 3) * -1
                     }
-                    action.set("win_value", winValue)
+                    action.set("win_value", winValue);
                     action.set("winner", winner);
                 }
             case SKAction.Stages.won:
@@ -536,6 +566,7 @@ SKActionQueueView = Backbone.View.extend({
                 break;
             default:
         }
+        action.set("stage", stage);
         this.render();
     },
     /*
@@ -560,7 +591,7 @@ SKActionQueueView = Backbone.View.extend({
             action.set('stage', SKAction.Stages.finished);
         } else if (action.get('finished_at')) {
             //TODO check that this works when finished At is done
-            if (action.get("battle")) {
+            if (action.battle) {
                 action.set("stage", SKAction.Stages.won);
             } else {
                 action.set("stage", SKAction.Stages.finished);
@@ -576,13 +607,13 @@ SKActionQueueView = Backbone.View.extend({
             action.set('stage', SKAction.Stages.finished);
         } else if (action.get('finished_at')) {
             //TODO check that this works when finished At is done
-            if (action.get("battle")) {
+            if (action.battle) {
                 action.set("stage", SKAction.Stages.won);
             } else {
                 action.set("stage", SKAction.Stages.finished);
             }
         } else {
-            if (action.get("battle")) {
+            if (action.battle) {
                 action.set("stage", SKAction.Stages.ongoing);
             } else {
                 action.set("stage", SKAction.Stages.finished);

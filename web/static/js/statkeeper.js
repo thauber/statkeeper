@@ -1,4 +1,19 @@
 window.ESB = {};
+Backbone.emulateJSON = true;
+
+makeTestMatch = function() {
+    var leftPlayer = new SKPlayer({race: 'protoss', name: 'Tony'})
+    var rightPlayer = new SKPlayer({race: 'terran', name: 'Flo'})
+    MatchView.match = new SKMatch(
+        {state: 'started'},
+        {leftPlayer:leftPlayer, rightPlayer: rightPlayer}
+    )
+    MatchView.leftPlayerView = null;
+    MatchView.rightPlayerView = null;
+    MatchView.controls = null;
+    MatchView.render()
+}
+
 ESB.Template = {
     make: function (id) {
         return _.template($('#'+id).html());
@@ -36,35 +51,74 @@ _.extend(ESB.Timer.prototype, Backbone.Events, {
 });
 
 ESB.Timer.displayClock = function(time){
-        var minutes = Math.floor(time / 60);
-        var seconds = Math.floor(time % 60);
-        if (seconds < 10) {
-            seconds = "0"+seconds;
-        }
-        if (minutes < 10) {
-            minutes = "0"+minutes;
-        }
-        return "" + minutes + ":" + seconds;
+    var minutes = Math.floor(time / 60);
+    var seconds = Math.floor(time % 60);
+    if (seconds < 10) {
+        seconds = "0"+seconds;
+    }
+    if (minutes < 10) {
+        minutes = "0"+minutes;
+    }
+    return "" + minutes + ":" + seconds;
 };
 
 $(function() {
 SKMatch = Backbone.Model.extend({
-    states: ['unpublished', 'published', 'started', 'ended'],
     defaults: {
-        state: 0,
+        winner: null,
+        match_map: null,
+    },
+    initialize: function(attrs, options) {
+        this.set("state", attrs['state'] || SKMatch.StateMap.unpublished);
+        this.leftPlayer = options.leftPlayer;
+        this.leftPlayer.side = "left";
+        this.rightPlayer = options.rightPlayer;
+        this.rightPlayer.side = "right";
     },
     nextState: function() {
-        if (this.get('state') == this.states.length-1) {
+        var nextState = SKMatch.nextState(this.get("state"))
+        if (!nextState) {
             throw "Matches can't advance to an invalid state. current state: "
-                   + this.states[this.get('state')];
+                   + this.get('state');
 
         }
-        this.set('state', this.get('state')+1);
+        this.set('state', nextState);
+    },
+    urlRoot: '/matches/'
+}); 
+
+SKMatch.StateMap = {
+     unpublished :"unpublished",
+     published   :"published",
+     started     :"started",
+     ended       :"ended"
+} 
+SKMatch.States = [
+    SKMatch.StateMap.unpublished,
+    SKMatch.StateMap.published,
+    SKMatch.StateMap.started,
+    SKMatch.StateMap.ended
+]
+
+SKMatch.nextState = function(currentState) {
+    currentIndex = SKMatch.States.indexOf(currentState)
+    if (currentIndex < SKMatch.States.length-1) {
+        return SKMatch.States[currentIndex+1];
+    }
+}
+
+SKPlayer = Backbone.Model.extend({
+    urlRoot: function() {
+        var sidePart = this.side? ""+this.side+"/" : "";
+        return "/matches/"+MatchView.match.id+"/player/"+sidePart;
     }
 }); 
 
-
-
+SKPlayer.races = {
+    terran:"terran",
+    protoss:"protoss",
+    zerg:"zerg"
+};
 
 SKMatchView = Backbone.View.extend({
 /*
@@ -81,18 +135,26 @@ SKMatchView = Backbone.View.extend({
         "click .match-control-group a"  :"beginAction"
     },
     initialize: function() {
-        this.match = new SKMatch();
-        this.match.on('change:state', this.render, this);
+        this.match = new SKMatch({},{
+            leftPlayer: new SKPlayer(),
+            rightPlayer: new SKPlayer()
+        });
+        this.match.on('change:state', this.handleStateChange, this);
+        this.match.on("sync", this.savePlayers, this);
+        this.match.leftPlayer.on("sync", this.hideLoading, this);
+        this.match.rightPlayer.on("sync", this.hideLoading, this);
+        this.loading = false;
     },
     render: function() {
         $(this.el).html(
             this.tmpl({
-                match: this.match
+                match: this.match,
+                loading:this.loading
             })
         );
         this.prepareHeaderArea();
         
-        if (this.match.get('state') == 2) {
+        if (this.match.get('state') == SKMatch.StateMap.started) {
             this.prepareActionArea();
         }
 
@@ -102,14 +164,14 @@ SKMatchView = Backbone.View.extend({
         if (!this.leftPlayerView) {
             this.leftPlayerView = new SKPlayerView({
                 match:this.match,
-                player:this.leftPlayer,
+                player:this.match.leftPlayer,
                 root:this
             })
         }
         if (!this.rightPlayerView) {
             this.rightPlayerView = new SKPlayerView({
                 match:this.match,
-                player:this.rightPlayer,
+                player:this.match.rightPlayer,
                 root:this
             })
         }
@@ -161,14 +223,14 @@ SKMatchView = Backbone.View.extend({
                 break;
         }
         if (shouldAdvance) {
-            this.match.set('state', this.match.get('state')+1);
+            this.match.set('state', SKMatch.nextState(this.match.get('state')));
         }
     },
     publish: function() {
-        if (this.rightPlayer.name
-            && this.rightPlayer.race
-            && this.leftPlayer.name
-            && this.leftPlayer.race) { 
+        if (this.match.rightPlayer.get("name")
+            && this.match.rightPlayer.get("race")
+            && this.match.leftPlayer.get("name")
+            && this.match.leftPlayer.get("race")) { 
             return true;
         }
         alert("You need to add a name and race for both players before you can publish");
@@ -200,8 +262,6 @@ SKMatchView = Backbone.View.extend({
         this.setCurrentActionView(SKActionView.createActionView({
             action: action,
             match: this.match,
-            left: this.leftPlayer,
-            right: this.rightPlayer
         }));
 
     },
@@ -228,7 +288,7 @@ SKMatchView = Backbone.View.extend({
     finishAction: function(actionView) {
         this.trigger("finishAction", actionView.action);
         this.setCurrentActionView(null);
-        this.render();
+        this.prepareActionArea();
     },
     cancelAction: function(actionView) {
         this.setCurrentActionView(null);
@@ -264,6 +324,23 @@ SKMatchView = Backbone.View.extend({
         this.createActionView(action);
         this.prepareActionArea();
     },
+    handleStateChange: function() {
+        if (!this.match.id || !this.match.leftPlayer.id || !this.rightPlayer.id) {
+            this.loading = true;
+        }
+        this.match.save();
+        this.render();
+    },
+    savePlayers: function() {
+        this.match.leftPlayer.save();
+        this.match.rightPlayer.save();
+    },
+    hideLoading: function() {
+        if (this.loading) {
+            this.loading = false;
+            this.render();
+        }
+    }
 });
 
 SKActionControlView = Backbone.View.extend({
@@ -288,7 +365,7 @@ SKActionControlView = Backbone.View.extend({
 SKMatchControls = Backbone.View.extend({
 /*
  * The view resposible for the clock and the buttons that progress the match
- * through the various stages: unpublished, published, started, ended.
+ * through the various states: unpublished, published, started, ended.
  *
  * Currently just the buttons
  */
@@ -326,28 +403,27 @@ SKPlayerView = Backbone.View.extend({
     raceListItemTmpl: ESB.Template.make('SKRace'),
     tagName: 'div',
     editable: true,
-    races: ["terran","protoss","zerg"],
     initialize: function() {
         this.player = this.options.player || {};
         this.match = this.options.match;
     },
     render: function() {
         var state = this.match.get('state'),
-            editable = state==0;
+            editable = state==SKMatch.StateMap.unpublished;
         options = {
             editable: editable,
             raceSelectedImg: null,
             size: 30,
             player: this.player
         };
-        if (this.player.race) {
-            options.raceSelectedImg = ESB.RaceImgMap[this.player.race];
+        if (this.player.get("race")) {
+            options.raceSelectedImg = ESB.RaceImgMap[this.player.get("race")];
         }
         $(this.el).html(
             this.tmpl(options)
         );
         var raceDropdown = $(this.el).find("._race_dropdown");
-        var makeRaceListItem = _.bind(function (race) {
+        var makeRaceListItem = _.bind(function (key, race) {
             raceLiOptions = {
                 race: race,
                 raceImg: ESB.RaceImgMap[race],
@@ -355,7 +431,7 @@ SKPlayerView = Backbone.View.extend({
             }
             raceDropdown.append(this.raceListItemTmpl(raceLiOptions))
         }, this);
-        _.each(this.races, makeRaceListItem)
+        _.each(SKPlayer.races, makeRaceListItem)
         if (editable) {
             $(this.el).addClass('editable');
             $(this.el).removeClass('uneditable');
@@ -366,11 +442,11 @@ SKPlayerView = Backbone.View.extend({
         return this.el;
     },
     raceUpdated: function(evt) {
-        this.player.race = $(evt.target).data('race');
+        this.player.set("race", $(evt.target).data('race'));
         this.render();
     },
     nameUpdated: function(evt) {
-        this.player.name = $(this.el).find('.player-name-input').val()
+        this.player.set("name", $(this.el).find('.player-name-input').val());
     },
     setEditable: function(editable) {
         this.editable = editable;

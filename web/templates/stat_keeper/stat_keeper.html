@@ -42,11 +42,15 @@
     </div>
     <hr>
     <div class="row">
-        <% if (match.get("state") == 0) { %>
+        <% if (match.get("state") == SKMatch.StateMap.unpublished) { %>
             <p class="match-hint">Add both players' names and races to publish.</p>
-        <% } else if (match.get("state") == 1) { %>
-            <p class="match-hint">Click start as soon as the match begins.</p>
-        <% } else if (match.get("state") == 2) { %>
+        <% } else if (match.get("state") == SKMatch.StateMap.published) { %>
+            <% if (loading) { %>
+                <img src="{{MEDIA_URL}}img/loader.png"/>
+            <% } else { %>
+                <p class="match-hint">Click start as soon as the match begins.</p>
+            <% } %>
+        <% } else if (match.get("state") == SKMatch.StateMap.started) { %>
             <div id="action-content"></div>
         <% } else { %>
             <p class="match-hint">This match is finished. There is nothing left to do here.</p>
@@ -55,7 +59,7 @@
 </script>
 <script type="text/template" id="SKPlayer">
     <% if(editable) { %>
-        <input type="text" class="player-name-input" value="<%= player.name %>"
+        <input type="text" class="player-name-input" value="<%= player.get("name") %>"
           placeholder="Add player's name..." class="xlarge"/>
         <ul class="nav nav-pills race">
             <li class="dropdown">
@@ -72,7 +76,7 @@
             </li>
         </ul>
     <% } else { %>
-        <p><%= player.name %></p>
+        <p><%= player.get("name") %></p>
         <img class='selection' src='<%=raceSelectedImg%>' height='<%=size%>' width='<%=size%>'/>
     <% } %>
 </script>
@@ -84,17 +88,17 @@
 <script type="text/template" id="SKMatchControls">
     <div id="next-state-button">
     <% switch (match.get('state')){
-        case 0: %>
+        case SKMatch.StateMap.unpublished: %>
             <a class="btn btn-primary">Publish</a>
     <%      break;
-        case 1: %>
+        case SKMatch.StateMap.published: %>
             <a class="btn btn-success">Start</a>
     <%      break;
-        case 2: %>
+        case SKMatch.StateMap.started: %>
             <p class="timer"><%=timer.displayClock()%></p>
             <a class="btn btn-danger">End</a>
     <%      break;
-        case 3: %>
+        case SKMatch.StateMap.ended: %>
             <a class="btn btn-disabled">Finished</a>
     <%      break;
     }%>
@@ -104,7 +108,7 @@
     <div class="span3 match-control-group" id="left-player-actions">
         <% for (var i=0; i < playerActions.length; i++) { %>
             <div><a class="btn match-control player" 
-                    data-action="<%=playerActions[i].id%>"
+                    data-action="<%=playerActions[i].action_type%>"
                     data-name="<%=playerActions[i].name%>"
                     data-player="left">
                 <%=playerActions[i].name%>
@@ -114,7 +118,7 @@
     <div class="span3 match-control-group" id="playerless-actions">
         <% for (var i=0; i < nonPlayerActions.length; i++) { %>
             <div><a class="btn match-control nonplayer" 
-                    data-action="<%=nonPlayerActions[i].id%>"
+                    data-action="<%=nonPlayerActions[i].action_type%>"
                     data-name="<%=nonPlayerActions[i].name%>">
                 <%=nonPlayerActions[i].name%>
             </a></div>
@@ -123,7 +127,7 @@
     <div class="span3 match-control-group" id="right-player-actions">
         <% for (var i=0; i < playerActions.length; i++) { %>
             <div><a class="btn match-control player" 
-                    data-action="<%=playerActions[i].id%>"
+                    data-action="<%=playerActions[i].action_type%>"
                     data-name="<%=playerActions[i].name%>"
                     data-player="right">
                 <%=playerActions[i].name%>
@@ -138,7 +142,7 @@
             <% if (action.get("actor")) { %>
                 <span class="actor">[<%=action.get("actor").name%>]</span>
             <% } %>
-            <%=action.get("name")%>
+            <%=action.name%>
         </h2>
     </div>
     <div class="span3">
