@@ -144,6 +144,10 @@ SKMatchView = Backbone.View.extend({
         this.match.leftPlayer.on("sync", this.hideLoading, this);
         this.match.rightPlayer.on("sync", this.hideLoading, this);
         this.loading = false;
+        this.defaultForces = {
+            left: [],
+            right: [],
+        }
     },
     render: function() {
         $(this.el).html(

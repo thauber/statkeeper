@@ -270,7 +270,8 @@
     for (i=0, length=actionOptionsList.length; i < length; i++) {
         actionOptions = actionOptionsList[i];
     %>
-        <div class="alert fade in queue-action">
+        <div class="alert fade in queue-action"
+             id="action-<%=actionOptions.action.id%>">
             <p class="action-time">
                 <%=ESB.Timer.displayClock(actionOptions.action.get('started_at'))%>
             </p>

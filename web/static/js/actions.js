@@ -230,12 +230,14 @@ SKActionBaseInvaded = SKActionView.extend({
         this.panes = [
             new SKPaneUnitComposition({
                 title: this.actor.get("name") + "'s Army",
+                player: this.actor,
                 armory: {
                     units: SKArmoryView.Units[this.actor.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
                 title: this.receiver.get("name") + "'s Defenses",
+                player: this.receiver,
                 armory: {
                     units: SKArmoryView.Units[this.receiver.get("race")],
                     structures: SKArmoryView.Structures[this.receiver.get("race")]
@@ -247,15 +249,17 @@ SKActionBaseInvaded = SKActionView.extend({
         return [
             new SKPaneUnitComposition({
                 title: this.actor.get("name") + "'s Reinforcements",
+                player: this.actor,
                 armory: {
                     units: SKArmoryView.Units[this.actor.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
                 title: this.receiver.get("name") + "'s Reinforcements",
+                player: this.receiver,
                 armory: {
                     units: SKArmoryView.Units[this.receiver.get("race")],
-                    structures: SKArmoryView.Structures[this.receiver.structures]
+                    structures: SKArmoryView.Structures[this.receiver.get("race")]
                 }
             })
         ];
@@ -267,12 +271,14 @@ SKActionHarassment = SKActionView.extend({
         this.panes = [
             new SKPaneUnitComposition({
                 title: this.actor.get("name") + "'s Harassment",
+                player: this.actor,
                 armory: {
                     units: SKArmoryView.Units[this.actor.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
                 title: this.receiver.get("name") + "'s Defenses",
+                player: this.receiver,
                 armory: {
                     units: SKArmoryView.Units[this.receiver.get("race")],
                     structures: SKArmoryView.Structures[this.receiver.get("race")]
@@ -284,15 +290,17 @@ SKActionHarassment = SKActionView.extend({
         return [
             new SKPaneUnitComposition({
                 title: this.actor.get("name") + "'s Reinforcements",
+                player: this.actor,
                 armory: {
                     units: SKArmoryView.Units[this.actor.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
                 title: this.receiver.get("name") + "'s Reinforcements",
+                player: this.receiver,
                 armory: {
                     units: SKArmoryView.Units[this.receiver.get("race")],
-                    structures: SKArmoryView.Structures[this.receiver.structures]
+                    structures: SKArmoryView.Structures[this.receiver.get("race")]
                 }
             })
         ];
@@ -312,12 +320,14 @@ SKActionEngagement = SKActionView.extend({
         this.panes = [
             new SKPaneUnitComposition({
                 title: this.match.leftPlayer.get("name") + "'s Army",
+                player: this.match.leftPlayer,
                 armory: {
                     units: SKArmoryView.Units[this.match.leftPlayer.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
                 title: this.match.rightPlayer.get("name") + "'s Army",
+                player: this.match.rightPlayer,
                 armory: {
                     units: SKArmoryView.Units[this.match.rightPlayer.get("race")]
                 }
@@ -328,12 +338,14 @@ SKActionEngagement = SKActionView.extend({
         return [
             new SKPaneUnitComposition({
                 title: this.match.leftPlayer.get("name") + "'s Reinforcements",
+                player: this.match.leftPlayer,
                 armory: {
                     units: SKArmoryView.Units[this.match.leftPlayer.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
                 title: this.match.rightPlayer.get("name") + "'s Reinforcements",
+                player: this.match.rightPlayer,
                 armory: {
                     units: SKArmoryView.Units[this.match.rightPlayer.get("race")]
                 }
@@ -363,6 +375,9 @@ SKPaneUnitComposition = SKPane.extend({
     tmpl: ESB.Template.make('SKPaneUnitComposition'),
     initialize: function() {
         this.quantities = [];
+        this.player = this.options.player
+        defaults = SKUnitDefaultManager.getDefaults(this.player);
+        this.setResult(defaults)
     },
     render: function() {
         var options = {
@@ -387,19 +402,23 @@ SKPaneUnitComposition = SKPane.extend({
 
         return this.el;
     },
-    addQuantity: function(element) {
-        var sameQuantity;
-        var i, length, quantity;
+    getQuantity: function(type) {
+        var i, length, quantity, sameQuantity;
         for (i=0, length=this.quantities.length; i < length; i++) {
             quantity = this.quantities[i]
-            if (quantity.type == element) {
+            if (quantity.type == type) {
                 sameQuantity=quantity;
             }
         }
+        return sameQuantity;
+    },
+    addQuantity: function(element) {
+        var sameQuantity = this.getQuantity(element);
         if (sameQuantity) {
             //TODO scroll to element if its not visible
             sameQuantity.shake();
         } else {
+            SKUnitDefaultManager.addDefault(element, this.player);
             this.createQuantity(element);
             this.render();
         }
@@ -422,6 +441,7 @@ SKPaneUnitComposition = SKPane.extend({
                 break;
             }
         }
+        SKUnitDefaultManager.removeDefault(quantity.type, this.player);
         this.render();
     },
     finish: function() {
@@ -442,11 +462,24 @@ SKPaneUnitComposition = SKPane.extend({
         return results;
     },
     setResult: function(resultList) {
-        var i, length, result, quantity;
+        var i, length, result, quantity, isAddable, sameQuantity, 
+            addables, addableLength;
+        addables = [];
+        for (var armoryKey in this.options.armory) {
+            addables = addables.concat(this.options.armory[armoryKey]);
+        }
         for (i=0, length=resultList.length; i<length; i++) {
             result = resultList[i];
-            quantity = this.createQuantity(result.type);
-            quantity.estimate = result.estimate;
+            sameQuantity = this.getQuantity(result.type)
+            
+            isAddable = false;
+            for (j=0, addableLength=addables.length; j<addableLength; j++) {
+                if (addables[j]==result.type) isAddable=true;
+            }
+            if (isAddable && !sameQuantity) {
+                quantity = this.createQuantity(result.type);
+                quantity.estimate = result.estimate;
+            }
         }
     }
 });
@@ -519,6 +552,7 @@ SKActionQueueView = Backbone.View.extend({
                 return {
                     buttons: [
                         {stage: SKAction.Stages.inprogress, text: "Work On"},
+                        {stage: SKAction.Stages.ongoing, text: "Re-engage"},
                         {stage: SKAction.Stages.hidden, text: "Hide"}
                     ],
                     statusText: "Finished...",
@@ -558,8 +592,17 @@ SKActionQueueView = Backbone.View.extend({
                     action.set("win_value", winValue);
                     action.set("winner", winner);
                 }
+                setTimeout(function() {
+                    $('#action-'+action.id).hide(50, function() {
+                        $('#action').find("btn[data-stage]").click()
+                    })
+                }, 5000);
             case SKAction.Stages.won:
                 action.set("finished_at", MatchTimer.time);
+                break;
+            case SKAction.Stages.ongoing:
+                action.unset("win_value");
+                action.set("winner");
                 break;
             case SKAction.Stages.hidden:
                 this.actions.splice(index, 1);
@@ -623,5 +666,31 @@ SKActionQueueView = Backbone.View.extend({
         this.render();
     }
 });
+
+SKUnitDefaultManager = {
+    defaults: {},
+    getDefaults: function(player) {
+        return this.defaults[player.side] || [];
+    },
+    addDefault: function(type, player) {
+        defaults = this.defaults[player.side]
+        if (!defaults) {
+            defaults = [];
+            this.defaults[player.side] = defaults;
+        }
+        defaults.push({
+            type: type,
+            estimate: 0
+        });
+    },
+    removeDefault: function(type, player) {
+        for (var i=0, length=this.defaults[player.side].length; i<length; i++) {
+            if (this.defaults[player.side][i].type == type) {
+                this.defaults[player.side].splice(i,1);
+                return;
+            }
+        }
+    }
+}
 
 });
