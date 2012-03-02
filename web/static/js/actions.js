@@ -490,7 +490,7 @@ SKActionQueueView = Backbone.View.extend({
         this.actions = [];
     },
     events: {
-        'click .queue-action .btn': "advanceStage"
+        'click .queue-action .btn': "handleAdvanceStage"
     },
     render: function() {
         var i, length, action, actionOptionsList = [];
@@ -518,6 +518,14 @@ SKActionQueueView = Backbone.View.extend({
         });
 
         return this.el;
+    },
+    getActionIndex: function(action) {
+        var i, length;
+        for (i=0, length=this.actions.length; i < length; i++) {
+            if (this.actions[i] == action) {
+                return i;
+            }
+        }
     },
     getActionOptions: function(action) {
         switch(action.get('stage')) {
@@ -560,11 +568,14 @@ SKActionQueueView = Backbone.View.extend({
                 }
         }
     },
-    advanceStage: function(evt) {
+    handleAdvanceStage: function(evt) {
         var button = $(evt.target);
         var stage = button.data('stage');
         var index = button.data('action-index');
         var action = this.actions[index];
+        this.advanceStage(action, stage, index);
+    },
+    advanceStage: function(action,stage,index) {
         switch (stage) {
             case SKAction.Stages.inprogress:
                 this.actions.splice(index, 1);
@@ -592,11 +603,19 @@ SKActionQueueView = Backbone.View.extend({
                     action.set("win_value", winValue);
                     action.set("winner", winner);
                 }
-                setTimeout(function() {
-                    $('#action-'+action.id).hide(50, function() {
-                        $('#action').find("btn[data-stage]").click()
-                    })
-                }, 5000);
+                var autohideAction = _.bind(function() {
+                    $('#action-'+action.id).hide(
+                        50, 
+                        _.bind(function() {
+                            var index = this.getActionIndex(action);
+                            var stage = SKAction.Stages.hidden;
+                            if (index!=null) {
+                                this.advanceStage(action, stage, index);
+                            }
+                        }, this)
+                    )
+                }, this);
+                setTimeout(autohideAction, 5000);
             case SKAction.Stages.won:
                 action.set("finished_at", MatchTimer.time);
                 break;
