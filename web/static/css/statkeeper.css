@@ -15,7 +15,8 @@ div.dropdown a:hover {
     min-width: 66px;
 }
 #content {
-    height: 500px;
+    height: 680px;
+    margin-bottom: 20px;
 }
 .player {
     margin-top: 20px;
@@ -75,6 +76,13 @@ ul.nav.pills.race {
 }
 .match-hint {
     text-align: center;
+}
+#action-content #map-view{
+    width: 500px;
+}
+#action-content {
+    position: relative;
+    background-color: black;
 }
 #action-content .match-control-group{
     text-align: center;
@@ -205,6 +213,7 @@ input.quantity {
     -moz-border-radius-bottomleft: 10px;
     border-bottom-left-radius: 10px;
     border-top-left-radius: 10px;
+    width: 150px;
 }
 .win-bar.ui-slider {
     background: #F66;
@@ -216,4 +225,169 @@ input.quantity {
 }
 .win-bar .ui-slider-handle {
     height: 25px;
+}
+.player .control-group {
+    margin-bottom: 0px;
+}
+.player select {
+    width: 180px;
+}
+.player-left .well {
+    background-color: #BBF;
+}
+.player-right .well {
+    background-color: #FBB;
+}
+.player .span {
+    width: 250px;
+}
+
+.short-form .span {
+    width: 170px;
+}
+.short-form select, .short-form input {
+    width: 100px;
+}
+.line-form select, .line-form input{
+    float: left;
+}
+.form-horizontal .control-group {
+    padding: 25px 0px 0px;
+    margin-bottom: 0px;
+}
+.player .control-group {
+    padding: 10px 0px;
+}
+.form-horizontal .control-group > label {
+    padding-right: 10px;
+    width: 60px;
+}
+#map_preview {
+    height: 300px;
+    margin: 20px 0px;
+    border: solid #444 3px;
+}
+#map-popup {
+    text-align: center;
+    background: #444;
+    opacity: .85;
+    padding: 10px;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    width: 110px;
+}
+
+#map-popup .controls {
+    padding-bottom: 10px;
+    margin: 0px;
+}
+
+
+#map-popup .controls .btn {
+    width: 53px;
+    padding: 4px 0px;
+}
+
+#map-popup a.symmetric {
+    margin-bottom: 10px;
+}
+
+#map-popup div.controls:last-child {
+    padding-bottom: 0px;
+}
+#map-popup a.symmetric:last-child {
+    margin-bottom: 0px
+}
+
+#map-popup .controls .left {
+    text-align: right;
+}
+#map-popup .controls .right {
+    text-align: left;
+}
+#map-popup .symmetric {
+    width: 86px;
+} 
+#map-popup .action-title {
+    font-size: 20px;
+    text-align: left;
+    color: white;
+    float: left;
+    line-height: 1;
+}
+#map-popup .action-actor {
+    font-size: 12px;
+    float: right;
+    line-height: 20px;
+}
+#map-popup p.left {
+    color: #BBF;
+}
+#map-popup p.right {
+    color: #FBB;
+}
+#map-popup p {
+    color: white;
+}
+#map-popup .phase {
+    padding: 5px 0px;
+}
+#map-popup.action-popup {
+    padding-top: 10px;
+}
+.fullscreen {
+    position: absolute;
+    top: 10px;
+    background: #AAA;
+    padding: 20px;
+    border-radius: 5px;
+    border: solid;
+    left: 30px;
+    opacity: .9;
+    text-align: left;
+}
+.done-btn {
+    font-weight: bold;
+    font-size: 18px;
+    width: 60px;
+    float: right;
+}
+#map-popup .win-bar-name {
+    font-weight: bold;
+    padding: 0px 5px;
+    margin: 0px;
+}
+#map-popup .win-bar-left {
+    color: #BBF;
+    float: left;
+}
+#map-popup .win-bar-right {
+    color: #FBB;
+    float: right;
+}
+#map-popup .win-bar-title {
+    margin: 0px;
+    padding: 0px;
+}
+.clear {
+    clear: both;
+}
+.content-title {
+    display: inline-block;
+}
+div.settings {
+    display: inline-block;
+    margin-left: 580px;
+}
+.action-time {
+    float: left;
+}
+.action-popup-control {
+    float: right;
+    background: #444;
+    margin-left: 6px;
+}
+.action-popup-control:hover {
+    opacity: .7;
 }

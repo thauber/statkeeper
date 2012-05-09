@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block extraHead %}
+<script src="{{MEDIA_URL}}js/jquery-ui-1.8.17.custom.min.js" type="text/javascript"></script>
+<link rel="stylesheet" href="{{MEDIA_URL}}css/jquery-ui-1.8.17.custom.css"/>
+<link rel="stylesheet" href="{{MEDIA_URL}}css/statkeeper.css"/>
+
+<script>
+</script>
+{% endblock %}
+
+{% block header %}
+  <h1>Create a Match:</h1>
+{% endblock %}
+{% block content %}
+<div class="row">
+  
+  {% if left_form.non_field_errors or right_form.non_field_errors or match_form.non_field_errors %}
+    <div class="span12 alert alert-error fade in" data-alert="alert">
+      <a class="close" data-dismiss="alert">×</a>
+      {% for error in left_form.non_field_errors %}
+        {{ error|escape }}
+      {% endfor %}
+      {% for error in right_form.non_field_errors %}
+        {{ error|escape }}
+      {% endfor %}
+      {% for error in match_form.non_field_errors %}
+        {{ error|escape }}
+      {% endfor %}
+    </div>
+  {% endif %}
+  <form method="POST" class="span12" id="match-form">
+    {% csrf_token %}
+    <div class="row form-horizontal">
+    <div class="span6 player-left player">
+        <div class="well line-form control-group">
+          {{ left_form.player.label_tag }}{{ left_form.player }}
+          {{ left_form.race.label_tag }}{{ left_form.race }}
+          {% if left_form.player.errors or left_form.race.errors %}
+            <span class="help-inline">
+              {% for error in left_form.player.errors %}{{ error|escape }}{% endfor %}
+              {% for error in left_form.race.errors %}{{ error|escape }}{% endfor %}
+            </span>
+          {% endif %}
+        </div>
+    </div>
+    <div class="span6 player-right player">
+        <div class="well line-form control-group">
+          {{ right_form.player.label_tag }}{{ right_form.player }}
+          {{ right_form.race.label_tag }}{{ right_form.race }}
+          {% if right_form.player.errors or right_form.race.errors %}
+            <span class="help-inline">
+              {% for error in right_form.player.errors %}{{ error|escape }}{% endfor %}
+              {% for error in right_form.race.errors %}{{ error|escape }}{% endfor %}
+            </span>
+          {% endif %}
+        </div>
+    </div>
+    </div>
+    <div class="row form-horizontal"><div class="span6">
+        <div class="control-group">
+        {{ match_form.tournament.label_tag }}
+        {{ match_form.tournament }}
+        {% if match_form.tournament.errors %}
+            <span class="help-inline">
+                {% for error in match_form.tournament.errors %}
+                    {{ error|escape }}
+                {% endfor %}
+            </span>
+        </div>
+        {% endif %}
+        <div class="line-form short-form control-group">
+            {{ match_form.ro.label_tag }}
+            {{ match_form.ro }}
+            {{ match_form.group.label_tag }}
+            {{ match_form.group }}
+        </div>
+        <div class="line-form short-form control-group">
+            {{ match_form.match_identifier.label_tag }}
+            {{ match_form.match_identifier }}
+            {{ match_form.set_number.label_tag }}
+            {{ match_form.set_number }}
+        </div>
+        {% if match_form.ro.errors or match_form.group.errors%}
+        <span class="help-inline">
+            {% for error in match_form.ro.errors %}
+                {{ error|escape }}
+            {% endfor %}
+            {% for error in match_form.group.errors %}
+                {{ error|escape }}
+            {% endfor %}
+        </span>
+        {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary btn-large">Create Match</button>
+    </div>
+    <div class="span6">
+        <div class="control-group">
+        {{ match_form.match_map.label_tag }}
+        {{ match_form.match_map }}
+        {% if match_form.match_map.errors %}
+            <span class="help-inline">
+                {% for error in match_form.match_map.errors %}
+                    {{ error|escape }}
+                {% endfor %}
+            </span>
+        {% endif %}
+        <div>
+            <img id="map_preview" src=""/>
+        </div>
+        </div>
+    </div>
+    </div></div>
+    <div class="clear"></div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+PreviewMaps = {{maps|safe}};
+jQuery(function() {
+    var map_select = jQuery("#id_match-match_map");
+    var map = jQuery("#map_preview");
+    map_select.change(function() {
+        var val = map_select.val();
+        console.log(PreviewMaps[val]);
+        if (val) {
+            map.attr('src', PreviewMaps[val]);
+            map.show();
+        } else {
+            map.hide();
+        }
+    });
+    map_select.change();
+});
+    
+{% endblock %}

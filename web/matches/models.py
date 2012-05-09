@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 def enumstr(string):
     return string.replace("_","-")
@@ -7,8 +8,8 @@ def enum(*strings):
     slugs = [string.replace("_","-") for string in strings]
     titles = [string.replace("_"," ").title() for string in strings]
     enums = dict(zip(strings, slugs))
-    enums['_items'] = zip(strings, slugs)
-    enums['_choices'] = zip(titles, slugs)
+    enums['_items'] = zip(slugs, strings)
+    enums['_choices'] = zip(slugs, titles)
     return type('Enum', (), enums)
 
 MatchStates = enum('unpublished', 'published', 'started', 'ended')
@@ -23,13 +24,17 @@ class Match(models.Model):
     players = models.ManyToManyField("Player", through="MatchPlayer")
     winner = models.CharField(
         max_length=63, choices=Players._choices, null=True, blank=True)
-    match_map = models.ForeignKey('Map', null=True, blank=True)
+    match_map = models.ForeignKey('Map')
+    tournament = models.CharField(max_length=63)
+    collection = models.CharField(max_length=63)
+    match_identifier = models.IntegerField(max_length=63, null=True)
+    set_number = models.IntegerField()
 
     def to_dict(self):
         return dict(
             state           = self.state,
             winner          = self.winner,
-            match_map       = self.match_map,
+            match_map       = self.match_map.to_dict(),
             id              = self.id,
         )
 
@@ -39,6 +44,13 @@ class MatchPlayer(models.Model):
     side = models.CharField(max_length=63, choices=Players._choices)
     color = models.TextField(null=True)
     race = models.CharField(max_length=63, choices=Races._choices)
+
+    def to_dict(self):
+        return dict(
+            name = self.player.name,
+            race = self.race,
+            id = self.side,
+        )
         
     class Meta:
         unique_together = (("match", "player"),("match", "side"))
@@ -46,13 +58,11 @@ class MatchPlayer(models.Model):
 class Action(models.Model):
     action_type = models.CharField(max_length=63, choices=ActionTypes._choices)
     results = models.TextField(null=True, blank=True)
-    reinforcements_at = models.TextField(null=True, blank=True)
+    position = models.TextField()
+    changes_at = models.TextField(null=True, blank=True)
+    changes = models.TextField(null=True, blank=True)
     started_at = models.FloatField(null=True, blank=True)
     finished_at = models.FloatField(null=True, blank=True)
-    win_value = models.IntegerField(null=True, blank=True)
-    stage = models.CharField(max_length=63, choices=ActionStages._choices)
-    winner = models.ForeignKey('MatchPlayer',
-        null=True, blank=True, related_name="action_winner")
     actor = models.ForeignKey('MatchPlayer',
         null=True, blank=True, related_name="action_actor")
     match = models.ForeignKey('Match')
@@ -61,12 +71,10 @@ class Action(models.Model):
         return dict(
             action_type         = self.action_type,
             results             = self.results,
-            reinforcements_at   = self.reinforcements_at,
+            changes_at          = self.changes_at,
+            changes             = self.changes,
             started_at          = self.started_at,
             finished_at         = self.finished_at,
-            winner              = self.winner,
-            win_value           = self.win_value,
-            stage               = self.stage,
             id                  = self.id,
         )
 
@@ -74,6 +82,20 @@ class Player(models.Model):
     name = models.TextField()
     official = models.BooleanField(default=False)
 
+    def __unicode__(self):
+        return self.name
+
 class Map(models.Model):
     map_file = models.CharField(max_length=255)
+    slug = models.CharField(max_length=255, unique=True)
     name = models.CharField(max_length=255)
+
+    def to_dict(self):
+        return dict(
+            url = "%s%s" % (settings.MEDIA_URL, self.map_file),
+            slug = self.slug,
+            name = self.name
+        )
+
+    def __unicode__(self):
+        return self.name

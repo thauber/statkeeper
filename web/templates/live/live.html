@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block extraHead %}
+<script src="{{MEDIA_URL}}js/base.js" type="text/javascript"></script>
+<script src="{{MEDIA_URL}}js/models.js" type="text/javascript"></script>
+<script src="{{MEDIA_URL}}js/live.js" type="text/javascript"></script>
+<script src="{{MEDIA_URL}}js/jquery-ui-1.8.17.custom.min.js" type="text/javascript"></script>
+<link rel="stylesheet" href="{{MEDIA_URL}}css/jquery-ui-1.8.17.custom.css"/>
+<link rel="stylesheet" href="{{MEDIA_URL}}css/statkeeper.css"/>
+
+<script>
+    $(function() {
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div id="live-content" class="span8"></div>
+    <div class="span4">
+        <div id="map-content"></div>
+        <div id="chat-content"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block templates %}
+<script type="text/template" id="LiveBattleActionView">
+    <div>
+        <%=title%>
+        <% if (actorsName) { %>
+            <span class="actors-name">[<%=actorsName%>]</span>
+        <% } %>
+    </div>
+    <% if (expanded) { %>
+        <div>
+        </div>
+    <% } %>
+</script>
+{% endblock %}
+
+
+
+

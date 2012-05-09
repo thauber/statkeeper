@@ -1,99 +1,377 @@
 $(function() {
 
-SKAction = Backbone.Model.extend({
-    /*
-     * action_type
-     * results
-     * reinforcements_at
-     * started_at
-     * finished_at
-     * winner
-     * win_value
-     */
-    defaults: {
-        winner: null,
-        win_value: 0,
+/*
+ * Phases
+ */
+SKPhase = function(action) {
+    this.editable = true;
+    this.hidden = true;
+    this.action = action;
+    this.initialize.apply(this, arguments);
+}
+_.extend(SKPhase.prototype, Backbone.Events, {
+    type:null,
+    initialize:function() {},
+    _setup:function(data) {
+        if (data.type == this.type) {
+            this.setup(data);
+        }
     },
-    initialize: function(attrs, options) {
-        this.set("reinforcements_at", []);
-        this.set("results", []);
-        this.set("stage", SKAction.Stages.inprogress);
-        this.name = options.name;
-        this.battle = options.battle;
-        this.on("sync", this.doQueuedSave, this);
-        this.on("change:stage", this.queueSave, this);
+    isFullScreen:function(forceEditable) {
+        return false;
     },
-    addResult: function(result, index) {
-        this.get("results").splice(index, 1, result); 
+    setup:function(data) {
+        this.data = data;
     },
-    addReinforcements: function(time) {
-        this.get("reinforcements_at").push(time);
+    preparePhase:function(view) {
+        view.delegate("[data-control='end']", 'click', _.bind(function(evt) {
+            this.trigger('phase:end', this, view);
+        },this));
+            
+        view.delegate("[data-control='change']", 'click', _.bind(function(evt) {
+            var target = $(evt.target);
+            this.trigger('phase:change', this, target.data("change"));
+        },this));
     },
-    urlRoot: function() {
-        return "/matches/" + MatchView.match.id + "/actions/"
+    endPhase:function(view) {},    
+    html: function() {},
+});
+SKPhase.extend = Backbone.Model.extend;
+
+SKForcesPhase = SKPhase.extend({
+    initialize: function(action, player, header, armory) {
+        this.player = player;
+        this.header = header;
+        this.armory = armory;
     },
-    queueSave: function() {
-        if (this.saving) {
-            this.queued = true;
+    endPhase: function() {
+        var results = this.compositionPane.finish()
+        return {'type': 'forces', 'forces':results}
+    },
+    type: "forces",
+    isFullScreen: function(forceEditable) {
+        return this.editable || forceEditable;
+    },
+    html: function(forceEditable) {
+        if (this.editable || forceEditable) {
+            this.compositionPane = new SKPaneUnitComposition({
+                player: this.player,
+                armory: this.armory,
+                initialData: this.data && this.data.forces,
+            });
+            tmpl = ESB.Template.make('SKForcesPhase');
+            var fullscreen = $(tmpl({header: this.header})).addClass("fullscreen");
+            this.compositionPane.setElement(fullscreen.find(".forces"));
+            this.compositionPane.render();
+            return fullscreen;
         } else {
-            this.doQueuedSave();
+            return $("<p>Forces have been added</p>");
+        }
+    }
+});
+SKOngoingPhase = SKPhase.extend({
+    breakFirst:true,
+    endPhase:function(view) {
+        this.action.set("finished_at", MatchTimer.time);
+    },    
+    html: function() {
+        return $("#SKOngoingPhase").html();
+    },
+});
+
+SKWinPhase = SKPhase.extend({
+    initialize: function(){
+        this.value = 3;
+    },
+    type: "win",
+    setup: function(data) {
+        var adjuster = 0;
+        if (data.winner == "tie") {
+            this.value = 3;
+        } else if (data.winner == "left") {
+            this.value = 3 - data.win_value;
+        } else if (data.winner == "right") {
+            this.value = 3 + data.win_value;
         }
     },
-    doQueuedSave: function() {
-        this.queued = false;
-        this.saving = true;
-        unsetSaving = _.bind(function() {
-            this.saving = false;
-        }, this);
-        var options = {
-            success: unsetSaving,
-            error: unsetSaving
+    preparePhase: function(view) {
+        view.find(".win-bar").slider({
+            value: this.value,
+            range: "min",
+            min: 0,
+            max: 6,
+            step: 1,
+            change: _.bind(function(evt, ui) {
+                this.value = ui.value;
+                this.trigger('phase:end', this, view);
+            },this)
+        });
+    },
+    endPhase: function(view) {
+        var winner, winValue;
+        if (this.value < 3) {
+            winner = "left";
+            winValue = 3 - this.value;
+        } else if (this.value > 3) {
+            winner = "right";
+            winValue = this.value - 3;
+        } else { 
+            winner = "tie";
+            winValue = 3;
         }
-        this.save({}, options);
-    }
-}); 
-
-SKAction.createAction = function(action_type, side) {
-//TODO add started to action
-    var actions = SKAction.playerActions.concat(SKAction.nonPlayerActions);
-    var i, length, action;
-    for (i=0, length=actions.length; i < length; i++) {
-        action = actions[i];
-        if (action.action_type == action_type) {
-            break;
+        return {'type': 'win', 'winner': winner, 'win_value': winValue};
+    },
+    html: function(forceEditable) {
+        if (this.editable || forceEditable) {
+            return ESB.Template.make("SKWinPhase")({
+                leftPlayerName: BaseLeftPlayer.get("name"),
+                rightPlayerName: BaseRightPlayer.get("name")
+            });
+        } else {
+            var winnerInfo = this.action.getWinnerInfo(), text;
+            var victoryMap = {
+                3: "won decisively",
+                2: "won moderately",
+                1: "won barely"
+            }
+            if (winnerInfo && winnerInfo[0] == "tie") {
+                text = "Both players tied";
+            } else if (winnerInfo) {
+                text = winnerInfo[0] + " " + victoryMap[winnerInfo[1]];
+            } else {
+                text = "Unknown";
+            }
+            return $("<p>"+text+"</p>");
         }
     }
-    var actionAttrs = {started_at: MatchTimer.time};
-    if (side) {
-        actionAttrs.side = side;
+})
+
+SKReengagePhase = SKPhase.extend({
+    breakFirst: true,
+    endPhase: function(view) {
+        var results = this.action.get("results"), length=results.length, i, result;
+        for (i=0; i<length; i++) {
+            result = results[i];
+            if (result.type == 'win') {
+                results.splice(i,1);
+            }
+        }
+        this.action.unset("finished_at");
+    },
+    html: function() {
+        return $("#SKReengagePhase").html();
     }
-    actionAttrs.action_type = action.action_type;
-    return new SKAction(actionAttrs, action);
-}
+})
 
-SKAction.Stages = {
-    inprogress  : "inprogress",   // Currently being worked on.
-    reinforcing : "reinforcing",  // reinforcements are being added.
-    queued      : "queued",       // Queued, but not complete.
-    ongoing     : "ongoing",      // Some actions are ongoing like engagements.
-    won         : "won",          // Game is won, but the winner has not been set.
-    finished    : "finished",     // Completely done no more info needed.
-    hidden      : "hidden"        // No longer showing up in the queue.
-}
 
-SKAction.ActionMap = {
-    baseInvaded: "base_invaded",
-    harrassment: "harrassment",
-    engagement: "engagement"
+/*
+ * Phasers
+ */
+SKPhaser = function(action){
+    this.action = action;
+    this.initialize.apply(this, arguments);
+    this.makePhases();
+    this._addPhaseListeners();
+    this._insertData();
 }
+_.extend(SKPhaser.prototype, Backbone.Events, {
+    initialize: function(action){},
+    adjustForChanges: function(action){},
+    _addPhaseListeners: function() {
+        var phase, length=this.phases.length, i;
+        for (i=0; i<length; i++) {
+            phase = this.phases[i];
+            phase.on('phase:end', function(phase, view) {
+                this.endPhase(phase, view);
+            }, this);
+            phase.on('phase:change', this.changePhase, this);
+        }
+    },
+    _insertData: function() {
+        var length=this.phases.length, lastShown=true, phase, i, data;
+        for (i=0; i<length; i++) {
+            phase = this.phases[i];
+            data = this.action.get("results")[i]
+            if (data && data.type == phase.type) {
+                phase.setup(data);
+                phase.hidden = false;
+                phase.editable = false;
+                lastShown = true;
+            } else if (data) {
+                phase.hidden = false;
+                phase.editable = false;
+                lastShown = true;
+            } else if (lastShown) {
+                lastShown = false;
+                phase.hidden = false;
+                phase.editable = true;
+            } else {
+                phase.hidden = true;
+            }
+        }
+    },
+    startPhase: function(nextPhase) {
+        if (nextPhase && !nextPhase.breakFirst) {
+            this.trigger('phaser:change', this);
+        } else {
+            this.trigger('phaser:close', this);
+        }
+    },
+    changePhase: function(phase, change) {
+        this.action.addChange(change, MatchTimer.time);
+        this.trigger('phaser:change', this);
+    },
+    endPhase: function(phase, view) {
+        var info = phase.endPhase(view);
+        var index = this.getPhaseIndex(phase);
+        if (this.action.get("results").length > index) {
+            this.action.get("results")[index] = info;
+        } else {
+            this.action.get("results").push(info);
+        }
+        this.action.save();
+        var nextPhase = this.getNextPhase(phase); 
+        this.startPhase(nextPhase);
+    },
+    getNextPhase: function(phase) {
+        var test, length=this.phases.length, i;
+        for (i=0; i<length; i++) {
+            test = this.phases[i];
+            if (test == phase && i < length-1) {
+                return this.phases[i+1];
+            }
+        }
+        return null;
+    },
+    getPhaseIndex: function(phase) {
+        var test, length=this.phases.length, i;
+        for (i=0; i<length; i++) {
+            test = this.phases[i];
+            if (test == phase) {
+                return i;
+            }
+        }
+        return null;
+    },
+    destroy: function() {
+        var phase, length=this.phases.length, i;
+        for (i=0; i<length; i++) {
+            phase = this.phases[i];
+            phase.off('phase:end');
+            this.off('phaser:close');
+            this.off('phaser:change');
+        }
+    }
+});
+SKPhaser.extend = Backbone.Model.extend;
 
-SKAction.playerActions = [
-    {name: "Base Invaded", action_type:SKAction.ActionMap.baseInvaded, battle: true},
-    {name: "Harassment", action_type:SKAction.ActionMap.baseInvaded, battle: true}
-];
-SKAction.nonPlayerActions = [
-    {name:"Engagement", action_type:SKAction.ActionMap.baseInvaded, battle: true}
-];
+SKEngagementPhaser = SKPhaser.extend({
+    makePhases: function() {
+        var forcePhases = this.getForcePhases()
+        this.phases = forcePhases;
+        var i, length=this.action.get("changes").length, change;
+        for (i=0; i < length; i++) {
+            this.phases = this.phases.concat(this.getForcePhases(true));
+        }
+        if (this.action.get("finished_at")==null) {
+            this.phases.push(new SKOngoingPhase(this.action));
+        }
+        this.phases.push(new SKWinPhase(this.action));
+        this.phases.push(new SKReengagePhase(this.action));
+    },
+    getForcePhases: function(reinforcements) {
+        var player1 = BaseLeftPlayer;
+        var player2 = BaseRightPlayer;
+        var player1Header = player1.get("name") + "'s Army";
+        var player2Header = player2.get("name") + "'s Army";
+        if (reinforcements) {
+            player1Header = player1.get("name") + "'s Reinforcements";
+            player2Header = player2.get("name") + "'s Reinforcements";
+        }
+        return [
+            new SKForcesPhase(
+                this.action,
+                player1,
+                player1Header,
+                {
+                    units: SKArmoryView.Units[player1.get("race")]
+                }
+            ),
+            new SKForcesPhase(
+                this.action,
+                player2,
+                player2Header,
+                {
+                    units: SKArmoryView.Units[player2.get("race")]
+                }
+            ),
+        ];
+    }
+});
+SKBaseInvasionPhaser = SKEngagementPhaser.extend({
+    getForcePhases: function(reinforcements) {
+        var player1 = this.action.getActor();
+        var player2 = this.action.getReceiver();
+        var player1Header = player1.get("name") + "'s Army";
+        var player2Header = player2.get("name") + "'s Defense";
+        if (reinforcements) {
+            player1Header = player1.get("name") + "'s Reinforcements";
+            player2Header = player2.get("name") + "'s Reinforcements";
+        }
+        return [
+            new SKForcesPhase(
+                this.action,
+                player1,
+                player1Header,
+                {
+                    units: SKArmoryView.Units[player1.get("race")],
+                    structures: SKArmoryView.Structures[player1.get("race")]
+                }
+            ),
+            new SKForcesPhase(
+                this.action,
+                player2,
+                player2Header,
+                {
+                    units: SKArmoryView.Units[player2.get("race")],
+                    structures: SKArmoryView.Structures[player2.get("race")]
+                }
+            ),
+        ];
+    }
+});
+SKHarassmentPhaser = SKEngagementPhaser.extend({
+    getForcePhases: function(reinforcements) {
+        var player1 = this.action.getActor();
+        var player2 = this.action.getReceiver();
+        var player1Header = player1.get("name") + "'s Harassment";
+        var player2Header = player2.get("name") + "'s Defense";
+        if (reinforcements) {
+            player1Header = player1.get("name") + "'s Reinforcements";
+            player2Header = player2.get("name") + "'s Reinforcements";
+        }
+        return [
+            new SKForcesPhase(
+                this.action,
+                player1,
+                player1Header,
+                {
+                    units: SKArmoryView.Units[player1.get("race")],
+                    structures: SKArmoryView.Structures[player1.get("race")]
+                }
+            ),
+            new SKForcesPhase(
+                this.action,
+                player2,
+                player2Header,
+                {
+                    units: SKArmoryView.Units[player2.get("race")],
+                    structures: SKArmoryView.Structures[player2.get("race")]
+                }
+            ),
+        ];
+    }
+});
 
 SKActionView = Backbone.View.extend({
 /*
@@ -376,6 +654,9 @@ SKPaneUnitComposition = SKPane.extend({
     initialize: function() {
         this.quantities = [];
         this.player = this.options.player
+        if (this.options.initialData) {
+            this.setResult(this.options.initialData);
+        }
         defaults = SKUnitDefaultManager.getDefaults(this.player);
         this.setResult(defaults)
     },

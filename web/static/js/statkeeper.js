@@ -1,125 +1,4 @@
-window.ESB = {};
-Backbone.emulateJSON = true;
-
-makeTestMatch = function() {
-    var leftPlayer = new SKPlayer({race: 'protoss', name: 'Tony'})
-    var rightPlayer = new SKPlayer({race: 'terran', name: 'Flo'})
-    MatchView.match = new SKMatch(
-        {state: 'started'},
-        {leftPlayer:leftPlayer, rightPlayer: rightPlayer}
-    )
-    MatchView.leftPlayerView = null;
-    MatchView.rightPlayerView = null;
-    MatchView.controls = null;
-    MatchView.render()
-}
-
-ESB.Template = {
-    make: function (id) {
-        return _.template($('#'+id).html());
-    }
-};
-ESB.Util = {
-    scrollToVisible: function (selector) {
-        //TODO fix this
-        var element = selector.first();
-        var offset = element.offset();
-        var scrollTo = offset.top-25;
-        var body = $("body,html");
-        var currentTop = body.scrollTop();
-        if (currentTop < scrollTo) {
-            body.animate({'scrollTop':scrollTo}, 40);
-        }
-    }
-}
-ESB.Timer = function(){
-    this.time = 0;
-    this.startTime = 0;
-}
-_.extend(ESB.Timer.prototype, Backbone.Events, {
-    start: function() {
-        this.startTime = new Date().getTime()/1000.0;
-        window.setInterval(_.bind(this.tick, this), 1000)
-    },
-    tick: function() {
-        this.time = (new Date().getTime()/1000) - this.startTime;
-        this.trigger("tick", this)
-    },
-    displayClock: function() {
-        return ESB.Timer.displayClock(this.time);
-    }
-});
-
-ESB.Timer.displayClock = function(time){
-    var minutes = Math.floor(time / 60);
-    var seconds = Math.floor(time % 60);
-    if (seconds < 10) {
-        seconds = "0"+seconds;
-    }
-    if (minutes < 10) {
-        minutes = "0"+minutes;
-    }
-    return "" + minutes + ":" + seconds;
-};
-
 $(function() {
-SKMatch = Backbone.Model.extend({
-    defaults: {
-        winner: null,
-        match_map: null,
-    },
-    initialize: function(attrs, options) {
-        this.set("state", attrs['state'] || SKMatch.StateMap.unpublished);
-        this.leftPlayer = options.leftPlayer;
-        this.leftPlayer.side = "left";
-        this.rightPlayer = options.rightPlayer;
-        this.rightPlayer.side = "right";
-    },
-    nextState: function() {
-        var nextState = SKMatch.nextState(this.get("state"))
-        if (!nextState) {
-            throw "Matches can't advance to an invalid state. current state: "
-                   + this.get('state');
-
-        }
-        this.set('state', nextState);
-    },
-    urlRoot: '/matches/'
-}); 
-
-SKMatch.StateMap = {
-     unpublished :"unpublished",
-     published   :"published",
-     started     :"started",
-     ended       :"ended"
-} 
-SKMatch.States = [
-    SKMatch.StateMap.unpublished,
-    SKMatch.StateMap.published,
-    SKMatch.StateMap.started,
-    SKMatch.StateMap.ended
-]
-
-SKMatch.nextState = function(currentState) {
-    currentIndex = SKMatch.States.indexOf(currentState)
-    if (currentIndex < SKMatch.States.length-1) {
-        return SKMatch.States[currentIndex+1];
-    }
-}
-
-SKPlayer = Backbone.Model.extend({
-    urlRoot: function() {
-        var sidePart = this.side? ""+this.side+"/" : "";
-        return "/matches/"+MatchView.match.id+"/player/"+sidePart;
-    }
-}); 
-
-SKPlayer.races = {
-    terran:"terran",
-    protoss:"protoss",
-    zerg:"zerg"
-};
-
 SKMatchView = Backbone.View.extend({
 /*
  * This is the main root view. It is responsible for choosing the right view for the portions
@@ -135,12 +14,15 @@ SKMatchView = Backbone.View.extend({
         "click .match-control-group a"  :"beginAction"
     },
     initialize: function() {
-        this.match = new SKMatch({},{
-            leftPlayer: new SKPlayer(),
-            rightPlayer: new SKPlayer()
-        });
+        if (this.options.match) {
+            this.match = this.options.match
+        } else {
+            this.match = new SKMatch({},{
+                leftPlayer: new SKPlayer(),
+                rightPlayer: new SKPlayer()
+            });
+        }
         this.match.on('change:state', this.handleStateChange, this);
-        this.match.on("sync", this.savePlayers, this);
         this.match.leftPlayer.on("sync", this.hideLoading, this);
         this.match.rightPlayer.on("sync", this.hideLoading, this);
         this.loading = false;
@@ -200,11 +82,11 @@ SKMatchView = Backbone.View.extend({
             this.currentActionView.setElement(this.$("#action-content"), true);
             this.currentActionView.render();
         } else {
-            if (!this.actionControls) {
-                this.actionControls = new SKActionControlView({root: this});
+            if (!this.mapControl) {
+                this.mapControl = new SKMapControlView({map: this.match.get("match_map")});
             }
-            this.actionControls.setElement(this.$("#action-content"), true);
-            this.actionControls.render();
+            this.mapControl.setElement(this.$("#action-content"), true);
+            this.mapControl.render();
         }
     },
     /*
@@ -335,15 +217,246 @@ SKMatchView = Backbone.View.extend({
         this.match.save();
         this.render();
     },
-    savePlayers: function() {
-        this.match.leftPlayer.save();
-        this.match.rightPlayer.save();
-    },
     hideLoading: function() {
         if (this.loading) {
             this.loading = false;
             this.render();
         }
+    }
+});
+
+SKMapControlView = Backbone.View.extend({
+    tagName: 'div',
+    events: {
+        "click #map-view"        :"doCreateActionControlPopup",
+        "click .action-control"  :"selectActionType",
+        "click img.action"       :"clickAction",
+        "click div.static-phase" :"editActionPhase",
+        "click .action-delete"   :"deleteAction",
+        "click .action-edit"     :"editAction", 
+    },
+    actionControlPopupTemplate: ESB.Template.make('SKActionControlPopup'),
+    actionPopupTemplate: ESB.Template.make('SKActionPopup'),
+    initialize: function() {
+        this.map = this.options.map;
+        this.actions = [];
+    },
+    render: function() {
+        var actionViews = [];
+        var container = $("<div id='map-container'>");
+        
+        //create the map
+        var mapView = this.mapView = $("<img>");
+        mapView.attr('src', this.map.url);
+        mapView.attr('id', 'map-view');
+        container.append(mapView);
+
+        var i, length=this.actions.length, action, iconSrc, actionView;
+        for (var i=0; i < length; i++) {
+            action = this.actions[i];
+            actionView = $("<img>");
+            actionView.addClass("action");
+            actionView.data('action-index', ""+i);
+
+            actionView.attr('src', SKMapControlView.getIconForAction(action));
+            actionView.css({
+                left: action.get("position").x-10,
+                top: action.get("position").y-10,
+                position: 'absolute',
+                width: 20,
+                height: 20,
+            });
+            container.append(actionView);
+        }
+        if (this.phaser) {
+            this.phaser.destroy();
+        }
+        if (this.selectedAction) {
+            container.append(this.createActionPopup(this.selectedAction));
+        } else if (this.controlPopup) {
+            container.append(this.controlPopup);
+        }
+        $(this.el).html(container);
+        return this.el;
+    },
+    doCreateActionControlPopup: function(evt) {
+        position = {x:evt.offsetX, y:evt.offsetY};
+        this.createActionControlPopup(position);
+    },
+    createActionControlPopup: function(position) {
+        this.selectAction(null);
+        this.controlPopup = $(this.actionControlPopupTemplate({
+            actions: SKAction.Actions,
+            position: position
+        }))
+        this.controlPopup.css({
+            left: position.x+20,
+            top: position.y-20,
+            position: 'absolute'
+        });
+        this.render()
+    },
+    createActionPopup: function(action) {
+        var position = action.get("position");
+        this.phaser = this.getActionPhaser(action);
+        this.phaser.on("phaser:change", this.render, this);
+        this.phaser.on("phaser:close", this.unselectAction, this);
+        var container = $(this.actionPopupTemplate({
+            phaser: this.phaser,
+            action: action,
+            actionIndex: this.actions.indexOf(action),
+            startedAt: ESB.Timer.displayClock(action.get("started_at")),
+            finishedAt: ESB.Timer.displayClock(action.get("finished_at"))
+        }));
+        container.css({
+            left: position.x+20,
+            top: position.y-20,
+            position: 'absolute',
+            width: 200,
+        });
+        var phaseListContainer = container.find(".phase-list-container");
+        var length=this.phaser.phases.length, i, phase;
+        for (i=0; i < length; i++) {
+            phase = this.phaser.phases[i];
+            evenOrOdd = "even";
+            if (i%2) {
+                evenOrOdd = "odd";
+            }
+            var forceEditable = this.editablePhaseIndex == i;
+            var editable = phase.editable || forceEditable;
+
+            var phaseContainer = $("<div>")
+                .addClass("phase")
+                .addClass(evenOrOdd)
+                .data("phase-index",i);
+            if (!editable) {
+                phaseContainer.addClass("static-phase");
+            }
+            phaseContainer.append(phase.html(forceEditable));
+            phase.preparePhase(phaseContainer);
+
+            if (phase.hidden) {
+                phaseContainer.hide();
+            }
+            if (editable && phase.isFullScreen(forceEditable)) {
+                return phaseContainer;
+            }
+            phaseListContainer.append(phaseContainer);
+        }
+        return container;
+    },
+    editActionPhase: function(evt) {
+        var target = $(evt.target).closest("div.phase");
+        this.editablePhaseIndex = parseInt(target.data('phase-index'));
+        this.render();
+    },
+    unselectAction: function(phaser) {
+        this.selectAction(null);
+        this.render();
+    },
+    clickAction: function(evt) {
+        var target = $(evt.target);
+        var actionIndex = parseInt(target.data('action-index'));
+        this.selectAction(this.actions[actionIndex]);
+        this.render();
+    },
+    selectAction: function(action) {
+        this.selectedAction = action;
+        this.editablePhaseIndex = -1;
+        this.editedActionIndex = null;
+    },
+    getActionPhaser: function(action) {
+        switch (action.get("action_type")) {
+            case SKAction.ActionMap.baseInvaded:
+                return new SKBaseInvasionPhaser(action);
+                break;
+            case SKAction.ActionMap.engagement:
+                return new SKEngagementPhaser(action);
+                break;
+            case SKAction.ActionMap.harassment:
+                return new SKHarassmentPhaser(action);
+                break;
+        }
+        return null;
+    },
+    deleteAction: function(evt) {
+        var target = $(evt.target).closest('.action-delete')
+        var confirmation = confirm(
+            "Deleting an action can not be undone Do you wish to continue?"
+        );
+        if (confirmation) {
+            this.actions.splice(parseInt(target.data("action-index")), 1);
+            this.selectAction(null);
+            this.render();
+        }
+    },
+    editAction: function(evt) {
+        var target = $(evt.target).closest('.action-edit')
+        var confirmation = confirm(
+            "Editing the action type will delete all entered information (the "+
+            "time the action started will not change). Do you wish to continue?"
+        );
+        if (confirmation) {
+            var actionIndex = parseInt(target.data("action-index"));
+            var action = this.actions[actionIndex];
+            this.createActionControlPopup(action.get("position"));
+            this.editedActionIndex = actionIndex;
+            this.render();
+        }
+    },
+    selectActionType: function(evt) {
+        this.controlPopup = null;
+        var target = $(evt.target);
+        var actionType = target.data('action-type');
+        var side = target.data('action-side');
+        var action;
+        if (this.editedActionIndex != null) {
+            var actionMap = SKAction.Actions;
+            var i, length, actionData;
+            for (i=0, length=actionMap.length; i < length; i++) {
+                actionData = actionMap[i];
+                if (actionData.action_type == actionType) {
+                    break;
+                }
+            }
+            action = this.actions[this.editedActionIndex];
+            action.resetResults(actionData, actionType, side);
+        } else {
+            var position = {
+                x:target.data('position-x'),
+                y:target.data('position-y')
+            };
+            action = SKAction.createAction(
+                actionType,
+                side,
+                position
+            )
+            this.actions.push(action);
+        }
+        this.selectAction(action);
+        this.render();
+    }
+})
+SKMapControlView.getIconForAction = function(action) {
+   return SKActionIconMap[action.type] || SKActionIconMap.default;
+}
+
+SKActionControlView = Backbone.View.extend({
+    tmpl: ESB.Template.make('SKActionControlView'),
+    tagName: 'div',
+    initialize: function() {
+        this.match = this.options.match;
+        this.root = this.options.root;
+    },
+    render: function() {
+        options = {
+            playerActions: SKAction.playerActions,
+            nonPlayerActions: SKAction.nonPlayerActions
+        }
+        $(this.el).html(
+            this.tmpl(options)
+        );
+        return this.el;
     }
 });
 

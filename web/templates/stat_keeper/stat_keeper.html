@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
 {% block extraHead %}
+<script src="{{MEDIA_URL}}js/base.js" type="text/javascript"></script>
+<script src="{{MEDIA_URL}}js/models.js" type="text/javascript"></script>
 <script src="{{MEDIA_URL}}js/statkeeper.js" type="text/javascript"></script>
 <script src="{{MEDIA_URL}}js/actions.js" type="text/javascript"></script>
 <script src="{{MEDIA_URL}}js/widgets.js" type="text/javascript"></script>
@@ -15,15 +17,55 @@
             protoss: "{{MEDIA_URL}}icons/Protoss.png",
             zerg: "{{MEDIA_URL}}icons/Zerg.png"
         };
+        SKActionIconMap = {
+            'baseInvaded':"{{MEDIA_URL}}img/target.png",
+            'harassment':"{{MEDIA_URL}}img/target.png",
+            'engagement':"{{MEDIA_URL}}img/target.png",
+            'default':"{{MEDIA_URL}}img/target.png",
+        }
+
+        window.SKSwapURL = "{% url match-swap-sides match.id %}"
+        window.BaseLeftPlayer = new SKPlayer({{player_left_data|safe}});
+        window.BaseRightPlayer = new SKPlayer({{player_right_data|safe}});
+        window.BaseMatch = new SKMatch({{match_data|safe}}, {
+            leftPlayer: BaseLeftPlayer,
+            rightPlayer: BaseRightPlayer
+        });
         window.MatchTimer = new ESB.Timer();
-        window.MatchView = new SKMatchView({el: $("#match-content")});
+        window.MatchView = new SKMatchView({match: BaseMatch, el: $("#match-content")});
         window.QueueView = new SKActionQueueView({el: $("#action-queue")});
+        window.MatchActions = [];
         QueueView.setMatchView(MatchView);
         MatchView.setQueueView(QueueView);
         MatchView.render();
 //TODO        queueView.render();
+        $('.settings .swap').click(function() {
+            var shouldSwap = confirm(
+                "If you swap the players positions all of the current stat" +
+                "keeping progress will be lost.  Do you still wish to continue?"
+            )
+            if (shouldSwap) {
+                window.location = SKSwapURL;
+            }
+        }
+        )
     });
 </script>
+{% endblock %}
+
+{% block header %}
+    <h1 class="content-title">Matchup Tracker</h1>
+    <div class="btn-group settings">
+        <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
+            <i class="icon-cog"></i>
+            <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu">
+            <li><a class="swap" href="#">
+                <i class="icon-refresh"></i> Swap Player Sides
+            </a></li>
+        </ul>
+    </div>
 {% endblock %}
 
 {% block content %}
@@ -51,7 +93,7 @@
                 <p class="match-hint">Click start as soon as the match begins.</p>
             <% } %>
         <% } else if (match.get("state") == SKMatch.StateMap.started) { %>
-            <div id="action-content"></div>
+            <div id="action-content" class="span9"></div>
         <% } else { %>
             <p class="match-hint">This match is finished. There is nothing left to do here.</p>
         <% } %>
@@ -256,12 +298,9 @@
 <script type="text/template" id='SKPaneSupplyUpdate'></script>
 <script type="text/template"  id='SKPanePositioning'></script>
 <script type="text/template" id='SKPaneUnitComposition'>
-    <div class="span12">
-        <h3><%-title%></h3>
+    <div id="quantities" class="row">
     </div>
-    <div id="quantities">
-    </div>
-    <div id="armory">
+    <div id="armory" class="row">
     </div>
 </script>
 <script type="text/template" id="SKActionQueueView">
@@ -302,5 +341,101 @@
             </div>
         </div>
     <% } %>
+</script>
+<script type="text/template" id="SKActionPopup">
+    <div id="map-popup" class="action-popup">
+        <p class="action-time"><i class="icon-white icon-time"></i>
+        <% if (startedAt != finishedAt) { %>
+            <%=startedAt%>-<%=finishedAt%>
+        <% } else { %>
+            <%=startedAt%>
+        <% } %>
+        </p>
+        <a class="action-popup-control action-delete" data-action-index=<%=actionIndex%> href="#">
+            <i class="icon-white icon-trash"></i>
+        </a>
+        <a class="action-popup-control action-edit" data-action-index=<%=actionIndex%> href="#">
+            <i class="icon-white icon-pencil"></i>
+        </a>
+        <div class="clear"></div>
+        <!--hr class="clear"></hr-->
+        <h1 class="action-title"><%=action.name%></h1>
+        <% if (action.getActorsName()) { %>
+            <p class="action-actor <%=action.get("side")%>">
+                <%=action.getActorsName()%>
+            </p>
+        <% } %>
+        <hr class="clear"></hr>
+        <!--div class="clear"></div-->
+        <div class="phase-list-container"></div>
+    </div>
+</script>
+<script type="text/template" id="SKActionControlPopup">
+    <div id="map-popup">
+    <% 
+    var length=actions.length, i, action;
+    for (i=0; i < length; i++) {
+        action = actions[i];
+        if (action.sym) {
+    %>
+        <a class="btn symmetric action-control"
+            data-position-x="<%=position.x%>"
+            data-position-y="<%=position.y%>"
+            data-action-type="<%=action.action_type%>"
+        ><%=action.name%></a>
+    <% } else { %>
+        <div class="btn-group controls">
+        <a class="btn btn-primary left action-control"
+            data-position-x="<%=position.x%>"
+            data-position-y="<%=position.y%>"
+            data-action-type="<%=action.action_type%>"
+            data-action-side="left"
+        ><%=action.name.substr(0,action.name.length/2)%></a>
+        <a class="btn btn-danger right action-control"
+            data-position-x="<%=position.x%>"
+            data-position-y="<%=position.y%>"
+            data-action-type="<%=action.action_type%>"
+            data-action-side="right"
+        ><%=action.name.substr(action.name.length/2)%></a>
+        </div>
+    <% 
+        }
+    } 
+    %>
+    </div>
+</script>
+<!--Phases-->
+<script type="text/template" id="SKWinPhase">
+    <p class="win-bar-title"> Who won? </p>
+    <p class="win-bar-name win-bar-left"><%=leftPlayerName%></p>
+    <p class="win-bar-name win-bar-right"><%=rightPlayerName%></p>
+    <div class="clear"></div>
+    <div class="win-bar"></div>
+</script>
+<script type="text/template" id="SKOngoingPhase">
+    <a class='btn' data-control='change' data-change='reinforcement'>
+        Reinforce
+    </a>
+    <a class='btn' data-control='end'>Finish</a>
+</script>
+<script type="text/template" id="SKReengagePhase">
+    <a class='btn' data-control='end'>Re-engage</a>
+</script>
+<script type="text/template" id="SKForcesPhase">
+<div>
+    <div class="row">
+        <div class="span7">
+            <h1><%=header%></h1>
+        </div>
+        <div class="span2">
+            <a class="done-btn btn" data-control="end">Done</a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="forces span9"></div>
+    </div>
+<div>
+</script>
+<script type="text/template" id="SKPhaserView">
 </script>
 {% endblock %}

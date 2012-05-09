@@ -1,0 +1,322 @@
+[
+    {
+        "pk": 1,
+        "model": "matches.Player",
+        "fields": {
+            "name": "MMA",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 2,
+        "model": "matches.Player",
+        "fields": {
+            "name": "July",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 3,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Leenock",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 4,
+        "model": "matches.Player",
+        "fields": {
+            "name": "BBoongBBoong",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 5,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Fin",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 6,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Virus",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 7,
+        "model": "matches.Player",
+        "fields": {
+            "name": "SuperNova",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 9,
+        "model": "matches.Player",
+        "fields": {
+            "name": "TheStC",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 10,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Maru",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 11,
+        "model": "matches.Player",
+        "fields": {
+            "name": "InCa",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 12,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Squirtle",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 13,
+        "model": "matches.Player",
+        "fields": {
+            "name": "NesTea",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 14,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Curious",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 15,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Zenio",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 16,
+        "model": "matches.Player",
+        "fields": {
+            "name": "TaeJa",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 17,
+        "model": "matches.Player",
+        "fields": {
+            "name": "NaDa",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 18,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Jjakji",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 19,
+        "model": "matches.Player",
+        "fields": {
+            "name": "MarineKing",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 20,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Ryung",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 21,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Mvp",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 22,
+        "model": "matches.Player",
+        "fields": {
+            "name": "HerO",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 23,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Oz",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 24,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Seed",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 25,
+        "model": "matches.Player",
+        "fields": {
+            "name": "DongRaeGu",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 26,
+        "model": "matches.Player",
+        "fields": {
+            "name": "MMA",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 27,
+        "model": "matches.Player",
+        "fields": {
+            "name": "GuMiho",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 28,
+        "model": "matches.Player",
+        "fields": {
+            "name": "aLive",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 29,
+        "model": "matches.Player",
+        "fields": {
+            "name": "PartinG",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 30,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Puzzle",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 31,
+        "model": "matches.Player",
+        "fields": {
+            "name": "MC",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 32,
+        "model": "matches.Player",
+        "fields": {
+            "name": "Genius",
+            "official": true
+        }
+    }, 
+    {
+        "pk": 1,
+        "model": "matches.Map",
+        "fields": {
+            "name": "Antiga Shipyard",
+            "slug": "antiga_shipyard",
+            "map_file": "maps/antiga_shipyard.jpg"
+        }
+    },
+    {
+        "pk": 2,
+        "model": "matches.Map",
+        "fields": {
+            "name": "Atlantis Spaceship",
+            "slug": "atlantis_spaceship",
+            "map_file": "maps/atlantis_spaceship.jpg"
+        }
+    },
+    {
+        "pk": 3,
+        "model": "matches.Map",
+        "fields": {
+            "name": "Cloud Kingdom",
+            "slug": "cloud_kingdom",
+            "map_file": "maps/cloud_kingdom.jpg"
+        }
+    },
+    {
+        "pk": 4,
+        "model": "matches.Map",
+        "fields": {
+            "name": "Daybreak",
+            "slug": "daybreak",
+            "map_file": "maps/daybreak.jpg"
+        }
+    },
+    {
+        "pk": 5,
+        "model": "matches.Map",
+        "fields": {
+            "name": "Dual Site",
+            "slug": "dual_site",
+            "map_file": "maps/dual_site.jpg"
+        }
+    },
+    {
+        "pk": 6,
+        "model": "matches.Map",
+        "fields": {
+            "name": "Entombed Valley",
+            "slug": "entombed_valley",
+            "map_file": "maps/entombed_valley.jpg"
+        }
+    },
+    {
+        "pk": 7,
+        "model": "matches.Map",
+        "fields": {
+            "name": "Metropolis",
+            "slug": "metropolis",
+            "map_file": "maps/metropolis.jpg"
+        }
+    },
+    {
+        "pk": 8,
+        "model": "matches.Map",
+        "fields": {
+            "name": "Ohana",
+            "slug": "ohana",
+            "map_file": "maps/ohana.jpg"
+        }
+    }
+]
