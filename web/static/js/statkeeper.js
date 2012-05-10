@@ -299,7 +299,10 @@ SKMapControlView = Backbone.View.extend({
     createActionPopup: function(action) {
         var position = action.get("position");
         this.phaser = this.getActionPhaser(action);
-        this.phaser.on("phaser:change", this.render, this);
+        this.phaser.on("phaser:change", function(evt){
+            this.editablePhaseIndex = -1;
+            this.render();
+        }, this);
         this.phaser.on("phaser:close", this.unselectAction, this);
         var container = $(this.actionPopupTemplate({
             phaser: this.phaser,
@@ -328,6 +331,7 @@ SKMapControlView = Backbone.View.extend({
             var phaseContainer = $("<div>")
                 .addClass("phase")
                 .addClass(evenOrOdd)
+                .addClass(phase.className)
                 .data("phase-index",i);
             if (!editable) {
                 phaseContainer.addClass("static-phase");

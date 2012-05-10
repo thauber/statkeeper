@@ -16,7 +16,8 @@ SKArmoryQuantityView = Backbone.View.extend({
     render: function() {
         var options = {
             type: this.type,
-            estimate: this.estimate,
+            selectedEstimate: this.estimate,
+            estimates: ["<30", "20", "10", "5", "4", "3", "2", "1"],
             amount: this.amount,
         }
         $(this.el).html(
@@ -26,7 +27,8 @@ SKArmoryQuantityView = Backbone.View.extend({
         return $(this.el);
     },
     estimateQuantity: function(evt) {
-        var estimate = $(evt.target).data('estimate');
+        var estimate = $(evt.target).attr('data-estimate');
+        console.log(estimate)
         if (estimate == this.estimate) {
             this.estimate = null;
         } else {

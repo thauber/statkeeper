@@ -11,6 +11,7 @@ SKPhase = function(action) {
 }
 _.extend(SKPhase.prototype, Backbone.Events, {
     type:null,
+    className:"SKPhase",
     initialize:function() {},
     _setup:function(data) {
         if (data.type == this.type) {
@@ -44,6 +45,7 @@ SKForcesPhase = SKPhase.extend({
         this.header = header;
         this.armory = armory;
     },
+    className:"SKForcesPhase",
     endPhase: function() {
         var results = this.compositionPane.finish()
         return {'type': 'forces', 'forces':results}
@@ -65,12 +67,16 @@ SKForcesPhase = SKPhase.extend({
             this.compositionPane.render();
             return fullscreen;
         } else {
-            return $("<p>Forces have been added</p>");
+            return ESB.Template.make('SKForcesDonePhase')({
+                header: this.header,
+                forces: this.data.forces || []
+            });
         }
     }
 });
 SKOngoingPhase = SKPhase.extend({
     breakFirst:true,
+    className:"SKOngoingPhase",
     endPhase:function(view) {
         this.action.set("finished_at", MatchTimer.time);
     },    
@@ -84,6 +90,7 @@ SKWinPhase = SKPhase.extend({
         this.value = 3;
     },
     type: "win",
+    className:"SKWinPhase",
     setup: function(data) {
         var adjuster = 0;
         if (data.winner == "tie") {
@@ -148,6 +155,7 @@ SKWinPhase = SKPhase.extend({
 
 SKReengagePhase = SKPhase.extend({
     breakFirst: true,
+    className:"SKReengagePhase",
     endPhase: function(view) {
         var results = this.action.get("results"), length=results.length, i, result;
         for (i=0; i<length; i++) {
@@ -730,14 +738,11 @@ SKPaneUnitComposition = SKPane.extend({
         var i, length, quantity;
         for (i=0, length=this.quantities.length; i<length; i++) {
             quantity = this.quantities[i];
-            if (quantity.estimate!=null) {
+            if (quantity.estimate) {
                 results.push({
                     type: quantity.type,
                     estimate: quantity.estimate
                 });
-            } else {
-                quantity.shake();
-                return false
             }
         }
         return results;

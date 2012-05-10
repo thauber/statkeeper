@@ -38,6 +38,7 @@
         QueueView.setMatchView(MatchView);
         MatchView.setQueueView(QueueView);
         MatchView.render();
+        window.MediaURL = "{{MEDIA_URL}}";
 //TODO        queueView.render();
         $('.settings .swap').click(function() {
             var shouldSwap = confirm(
@@ -260,36 +261,18 @@
         </div>
         <div class="span6 quantity-controls">
             <div class="btn-group estimates">
+            <%
+            var estimate, i, length=estimates.length;
+            for (i=0; i < length; i++) { 
+                estimate = estimates[i];
+            %>
                 <a 
-                    data-estimate="5" 
-                    class="btn quantity-estimate
-                    <% if (estimate==5) { %> active <% } %>">
-                    &gt;=30
+                    data-estimate="<%=estimate%>" 
+                    class="btn quantity-estimate quantity-estimate-<%=estimate%>
+                    <% if (selectedEstimate==estimate) { %> active <% } %>">
+                    <%-estimate%>
                 </a>
-                <a 
-                    data-estimate="4" 
-                    class="btn quantity-estimate
-                    <% if (estimate==4) { %> active <% } %>">
-                    &asymp;20
-                </a>
-                <a 
-                    data-estimate="3" 
-                    class="btn quantity-estimate
-                    <% if (estimate==3) { %> active <% } %>">
-                    &asymp;10
-                </a>
-                <a  
-                    data-estimate="2" 
-                    class="btn quantity-estimate
-                    <% if (estimate==2) { %> active <% } %>">
-                    &asymp;5
-                </a>
-                <a  
-                    data-estimate="1" 
-                    class="btn quantity-estimate
-                    <% if (estimate==1) { %> active <% } %>">
-                    &lt;5
-                </a>
+           <% } %>
             </div>
             <a class="remove btn btn-danger">&times;</a>
         </div>
@@ -436,6 +419,26 @@
     </div>
 <div>
 </script>
-<script type="text/template" id="SKPhaserView">
+<script type="text/template" id="SKForcesDonePhase">
+<div>
+    <p><%=header%></p>
+    <div>
+        <%
+        var unit, i, length=forces.length;
+        for (i=0; i < length; i++) { 
+            unit = forces[i];
+        %>
+            <div class="forces-phase-icon-container
+                <% if (i%5 == 4) { %> row-last <% } %>">
+                <img class="forces-phase-icon"
+                     src="<%=ESB.Util.getIconURL(unit.type, MediaURL)%>"/>
+                <div class="forces-phase-icon-quantity"><%-unit.estimate%></div>
+            </div>
+        <%
+        }
+        %>
+        <div class="clear"></div>
+    </div>
+<div>
 </script>
 {% endblock %}

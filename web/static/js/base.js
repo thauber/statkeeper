@@ -30,6 +30,10 @@ ESB.Util = {
         if (currentTop < scrollTo) {
             body.animate({'scrollTop':scrollTo}, 40);
         }
+    },
+    getIconURL: function (unitName, mediaURL) {
+        icon = unitName.toLowerCase().replace(new RegExp('[ -]', 'g'), '_');
+        return mediaURL+"/sc2/icons/"+icon+".gif";
     }
 }
 ESB.Timer = function(){

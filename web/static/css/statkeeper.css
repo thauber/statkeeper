@@ -134,10 +134,13 @@ ul.nav.pills.race {
 a.selected {
     background-color: darkgray;   
 }
-.btn.quantity-estimate {
+.quantity-estimate {
     font-size: 24px;
     font-weight: bold;
     padding: 5px 30px;
+}
+.quantity-estimate-5, .quantity-estimate-4, .quantity-estimate-3, .quantity-estimate-2, .quantity-estimate-1 {
+    padding: 5px 15px;
 }
 .btn.quantity-adjuster {
     font-size: 24px;
@@ -383,6 +386,10 @@ div.settings {
 .action-time {
     float: left;
 }
+.action-popup hr {
+    padding: 0px;
+    margin: 20px 0px 0px;
+}
 .action-popup-control {
     float: right;
     background: #444;
@@ -390,4 +397,36 @@ div.settings {
 }
 .action-popup-control:hover {
     opacity: .7;
+}
+.forces-phase-icon {
+    width: 36px;
+}
+.SKForcesPhase {
+    text-align: left;
+}
+.forces-phase-icon-quantity {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    padding: 0px 2px;
+    background: red;
+    opacity: 0.8;
+    border-bottom-right-radius: 3px;
+    color: white;
+    border: black solid 1px;
+    font-weight: bold;
+}
+.forces-phase-icon-container {
+    position: relative;
+    width: 36px;
+    float: left;
+    margin-right: 5px;
+    margin-top: 5px;
+    height: 36px;
+}
+.SKForcesPhase .row-last {
+    margin-right: 0px;
+}
+.SKForcesPhase p {
+    margin: 0px;
 }
