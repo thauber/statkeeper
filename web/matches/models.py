@@ -1,9 +1,7 @@
 from django.db import models
 from django.conf import settings
 
-def enumstr(string):
-    return string.replace("_","-")
-
+def enumstr(string): return string.replace("_","-")
 def enum(*strings):
     slugs = [string.replace("_","-") for string in strings]
     titles = [string.replace("_"," ").title() for string in strings]
@@ -20,10 +18,12 @@ ActionTypes = enum("base_invasion", "harrassment", "engagement")
 Races = enum("terran", "protoss", "zerg")
 
 class Match(models.Model):
-    state = models.CharField(max_length=63, choices=MatchStates._choices)
-    players = models.ManyToManyField("Player", through="MatchPlayer")
-    winner = models.CharField(
-        max_length=63, choices=Players._choices, null=True, blank=True)
+    started = models.BooleanField()
+    ended = models.BooleanField()
+    players = models.ManyToManyField(
+        "Player", through="MatchPlayer", related_name="matches")
+    winner = models.ForeignKey(
+        "Player", null=True, related_name="won_matches")
     match_map = models.ForeignKey('Map')
     tournament = models.CharField(max_length=63)
     collection = models.CharField(max_length=63)
@@ -46,12 +46,13 @@ class MatchPlayer(models.Model):
     race = models.CharField(max_length=63, choices=Races._choices)
 
     def to_dict(self):
-        return dict(
+        return dict (
             name = self.player.name,
             race = self.race,
-            id = self.side,
+            player_id = self.player_id,
+            side = self.side,
         )
-        
+
     class Meta:
         unique_together = (("match", "player"),("match", "side"))
 
