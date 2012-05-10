@@ -10,7 +10,8 @@ SKMatchView = Backbone.View.extend({
     match: {},
     tagName: 'div',
     events: {
-        "click #next-state-button a"    :"advanceState",
+        "click .start-match": "start"
+        "click .start-match": "confirmStart"
         "click .match-control-group a"  :"beginAction"
     },
     initialize: function() {
@@ -22,9 +23,16 @@ SKMatchView = Backbone.View.extend({
                 rightPlayer: new SKPlayer()
             });
         }
-        this.match.on('change:state', this.handleStateChange, this);
-        this.match.leftPlayer.on("sync", this.hideLoading, this);
-        this.match.rightPlayer.on("sync", this.hideLoading, this);
+        this.matchStarted = this.match.get('started')
+        if (this.matchStarted) {
+            this.started();
+        }
+        this.matchFinished = this.match.get('finished')
+        if (this.matchFinished) {
+            this.finished();
+        }
+        this.match.on('sync', this.checkState, this);
+
         this.loading = false;
         this.defaultForces = {
             left: [],
@@ -89,140 +97,36 @@ SKMatchView = Backbone.View.extend({
             this.mapControl.render();
         }
     },
-    /*
-     * State of the match.
-     *
-     * All of these methods are responsible for advancing and setting the
-     * state of the match: (unpublished, published, started, ended)
-     */
-    advanceState: function() {
-        var shouldAdvance = true;
-        switch(this.match.get("state")) {
-            case 0:
-                shouldAdvance = this.publish();
-                break;
-            case 1:
-                shouldAdvance = this.start();
-                break;
-            case 2:
-                shouldAdvance = this.end();
-                break;
+    checkState: function() {
+        if (this.match.get("started") && !this.matchStarted) {
+            this.matchStarted = true;
+            this.started();
         }
-        if (shouldAdvance) {
-            this.match.set('state', SKMatch.nextState(this.match.get('state')));
-        }
-    },
-    publish: function() {
-        if (this.match.rightPlayer.get("name")
-            && this.match.rightPlayer.get("race")
-            && this.match.leftPlayer.get("name")
-            && this.match.leftPlayer.get("race")) { 
-            return true;
-        }
-        alert("You need to add a name and race for both players before you can publish");
-        return false;
-    },
-    start: function() {
-        MatchTimer.start()
-        return true;
-    },
-    end: function() {
-        //TODO modal asking who won.
-        return confirm("Are you sure you want to end the game?")
-    },
-
-    /*
-     * Begin Action
-     *
-     * This is called when an action control button is pressed to begin an
-     * action.
-     */
-    beginAction: function(evt) {
-        var side = $(evt.target).data('player');
-        var actionID = $(evt.target).data('action');
-        var actionName = $(evt.target).data('name');
-        this.createActionView(SKAction.createAction(actionID, side));
-        this.prepareActionArea();
-    },
-    createActionView: function(action) {
-        this.setCurrentActionView(SKActionView.createActionView({
-            action: action,
-            match: this.match,
-        }));
-
-    },
-    setCurrentActionView: function(nextActionView) {
-        if (this.currentActionView) {
-            this.currentActionView.off("finish");
-            this.currentActionView.off("queue");
-            this.currentActionView.off("cancel");
-            this.currentActionView.destroy();
-        }
-        this.currentActionView = nextActionView;
-        if (nextActionView) {
-            this.currentActionView.on('finish', this.finishAction, this);
-            this.currentActionView.on('queue', this.queueAction, this);
-            this.currentActionView.on('cancel', this.cancelAction, this);
-        }
-    },
-    
-    /*
-     * Status of current action
-     *
-     * All of these are callbacks from events on the current action view
-     */
-    finishAction: function(actionView) {
-        this.trigger("finishAction", actionView.action);
-        this.setCurrentActionView(null);
-        this.prepareActionArea();
-    },
-    cancelAction: function(actionView) {
-        this.setCurrentActionView(null);
-        this.prepareActionArea();
-    },
-    queueAction: function(evt) {
-        this.trigger("queueAction", this.currentActionView.action);
-        this.setCurrentActionView(null);
-        this.prepareActionArea();
-    },
-
-    /*
-     * Queue interaction methods.
-     *
-     * Here are all of the methods involved in communicating with the
-     * action queue.
-     *
-     * find:action-queue
-     */
-    setQueueView: function(queueView) {
-        if (this.queueView) {
-            this.queueView.off("dequeueAction");
-            this.queueView.off("reinforceAction");
-        }
-        this.queueView = queueView;
-        this.queueView.on("dequeueAction", this.dequeueAction, this);
-        this.queueView.on("reinforceAction", this.dequeueAction, this);
-    },
-    dequeueAction: function(action) {
-        if (this.currentActionView && this.currentActionView.action) {
-            this.queueAction();
-        }
-        this.createActionView(action);
-        this.prepareActionArea();
-    },
-    handleStateChange: function() {
-        if (!this.match.id || !this.match.leftPlayer.id || !this.rightPlayer.id) {
-            this.loading = true;
-        }
-        this.match.save();
-        this.render();
-    },
-    hideLoading: function() {
-        if (this.loading) {
-            this.loading = false;
-            this.render();
+        if (this.match.get("finished") && !this.matchFinished) {
+            this.matchStarted = true;
+            this.finished();
         }
     }
+    start: function() {
+        this.match.set("started", true);
+    },
+    started: function() {
+        MatchTimer.start()
+    }
+    confirmfinish: function() {
+        //TODO FIX so that winner is chosen
+        this.finish("left");
+    }
+    finish: function(winningSide) {
+        winner = BaseLeftPlayer;
+        if ("right") {
+            winner = BaseRightPlayer
+        }
+        this.match.set({"finished": true, "winner":winner.get("player_id"));
+    }
+    finished: function() {
+        //TODO stuff after finish
+    },
 });
 
 SKMapControlView = Backbone.View.extend({
@@ -272,6 +176,7 @@ SKMapControlView = Backbone.View.extend({
             this.phaser.destroy();
         }
         if (this.selectedAction) {
+            this.controlPopup = null;
             container.append(this.createActionPopup(this.selectedAction));
         } else if (this.controlPopup) {
             container.append(this.controlPopup);

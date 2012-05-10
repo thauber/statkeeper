@@ -129,7 +129,18 @@ def save_match(request, match_id):
     print match_data
     match = models.Match.objects.get(id = match_id)
     for key in match_data:
-        if key not in ['id', 'match_map']:
+        if key == "winner" and match_data['winner'] != match.winner_id:
+            winner = match_data['winner']
+            legal_winner = False
+            for match_player in match.players.all():
+                if match_player.player_id == winner:
+                    legal_winner = True
+            if legal_winner:
+                match.winner = winner
+            else:
+                raise AttributeError, "The winner must be one of the players in a match"
+                
+        elif key not in ['id', 'match_map']:
             setattr(match, key, match_data[key])
     match.save()
     return HttpResponse(simplejson.dumps(match.to_dict())) 

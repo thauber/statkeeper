@@ -143,7 +143,6 @@ SKAction.createAction = function(action_type, side, postion) {
     var actionObj = new SKAction(actionAttrs, action);
     window.MatchActions.push(actionObj);
     return actionObj;
-}
 
 SKAction.Stages = {
     inprogress  : "inprogress",   // Currently being worked on.
@@ -172,7 +171,8 @@ SKMatch.StateMap = {
      published   :"published",
      started     :"started",
      ended       :"ended"
-} 
+}; 
+
 SKMatch.States = [
     SKMatch.StateMap.unpublished,
     SKMatch.StateMap.published,
