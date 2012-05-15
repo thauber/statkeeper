@@ -75,7 +75,6 @@ SKForcesPhase = SKPhase.extend({
     }
 });
 SKOngoingPhase = SKPhase.extend({
-    breakFirst:true,
     className:"SKOngoingPhase",
     endPhase:function(view) {
         this.action.set("finished_at", MatchTimer.time);
@@ -154,8 +153,8 @@ SKWinPhase = SKPhase.extend({
 })
 
 SKReengagePhase = SKPhase.extend({
-    breakFirst: true,
     className:"SKReengagePhase",
+    persist: true,
     endPhase: function(view) {
         var results = this.action.get("results"), length=results.length, i, result;
         for (i=0; i<length; i++) {
@@ -171,6 +170,37 @@ SKReengagePhase = SKPhase.extend({
     }
 })
 
+SKMacroPhase = SKPhase.extend({
+    initialize: function(action, player, macroType, armory) {
+        this.player = player;
+        this.macroType = macroType;
+        this.armory = armory;
+    },
+    className:"SKMacroPhase",
+    preparePhase: function(view) {
+        this.armoryView.on("elementSelected", function(element) {
+            this.element = element;
+            this.trigger("phase:end", this, view);
+        }, this);
+    },
+    endPhase: function(view) {
+        var data = {'type': 'macro'};
+        SKUnitDefaultManager.addDefault(this.element, this.player);
+        data[this.macroType] = this.element;
+        return data;
+    },
+    type: "macro",
+    isFullScreen: function(forceEditable) {
+        return true;
+    },
+    html: function(forceEditable) {
+        this.armoryView = new SKArmoryView(this.armory);
+        var fullscreen = $("<div></div>").addClass("fullscreen");
+        this.armoryView.setElement(fullscreen, true);
+        this.armoryView.render();
+        return fullscreen;
+    }
+});
 
 /*
  * Phasers
@@ -218,8 +248,8 @@ _.extend(SKPhaser.prototype, Backbone.Events, {
             }
         }
     },
-    startPhase: function(nextPhase) {
-        if (nextPhase && !nextPhase.breakFirst) {
+    startPhase: function(nextPhase, oldPhase) {
+        if (nextPhase && !nextPhase.breakFirst || oldPhase.persist) {
             this.trigger('phaser:change', this);
         } else {
             this.trigger('phaser:close', this);
@@ -239,7 +269,7 @@ _.extend(SKPhaser.prototype, Backbone.Events, {
         }
         this.action.save();
         var nextPhase = this.getNextPhase(phase); 
-        this.startPhase(nextPhase);
+        this.startPhase(nextPhase, phase);
     },
     getNextPhase: function(phase) {
         var test, length=this.phases.length, i;
@@ -273,6 +303,19 @@ _.extend(SKPhaser.prototype, Backbone.Events, {
 });
 SKPhaser.extend = Backbone.Model.extend;
 
+SKUnitCreationPhaser = SKPhaser.extend({
+    makePhases: function() {
+        this.phases = [new SKMacroPhase(
+            this.action,
+            this.action.getActor(),
+            'unit',
+            this.getArmory()
+        )];
+    },
+    getArmory: function() {
+        return {units: SKArmoryView.Units[this.action.getActor().get("race")]};
+    }
+})
 SKEngagementPhaser = SKPhaser.extend({
     makePhases: function() {
         var forcePhases = this.getForcePhases()

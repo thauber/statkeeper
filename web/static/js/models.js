@@ -1,23 +1,14 @@
+
 SKMatch = Backbone.Model.extend({
     defaults: {
         winner: null,
         match_map: null,
     },
     initialize: function(attrs, options) {
-        this.set("state", attrs['state'] || SKMatch.StateMap.published);
         this.leftPlayer = options.leftPlayer;
         this.leftPlayer.side = "left";
         this.rightPlayer = options.rightPlayer;
         this.rightPlayer.side = "right";
-    },
-    nextState: function() {
-        var nextState = SKMatch.nextState(this.get("state"))
-        if (!nextState) {
-            throw "Matches can't advance to an invalid state. current state: "
-                   + this.get('state');
-
-        }
-        this.set('state', nextState);
     },
     urlRoot: '/matches/'
 }); 
@@ -119,7 +110,7 @@ SKAction = Backbone.Model.extend({
     }
 }); 
 
-SKAction.createAction = function(action_type, side, postion) {
+SKAction.createAction = function(action_type, side, position) {
 //TODO add started to action
     var actions = SKAction.Actions;
     var i, length, action;
@@ -131,8 +122,10 @@ SKAction.createAction = function(action_type, side, postion) {
     }
     var actionAttrs = {
         started_at: MatchTimer.time,
-        position: position,
     };
+    if (position) {
+        actionAttrs.position = position;
+    }
     if (side) {
         actionAttrs.side = side;
     }
@@ -143,6 +136,7 @@ SKAction.createAction = function(action_type, side, postion) {
     var actionObj = new SKAction(actionAttrs, action);
     window.MatchActions.push(actionObj);
     return actionObj;
+};
 
 SKAction.Stages = {
     inprogress  : "inprogress",   // Currently being worked on.
@@ -157,13 +151,15 @@ SKAction.Stages = {
 SKAction.ActionMap = {
     baseInvaded: "base_invaded",
     harassment: "harassment",
-    engagement: "engagement"
+    engagement: "engagement",
+    unit_creation: "unit_creation"
 }
 
 SKAction.Actions = [
     {name:"Engagement", action_type:SKAction.ActionMap.engagement, sym: true},
     {name: "Invaded Base", action_type:SKAction.ActionMap.baseInvaded, sym:false},
-    {name: "Harassment", action_type:SKAction.ActionMap.harassment, sym:false}
+    {name: "Harassment", action_type:SKAction.ActionMap.harassment, sym:false},
+    {name: "Created Unit", action_type:SKAction.ActionMap.unit_creation, sym:false, positionless: true}
 ];
 
 SKMatch.StateMap = {

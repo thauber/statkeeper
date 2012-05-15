@@ -10,7 +10,7 @@ import models
 from django_ext.http import JSONResponse
 from django.template.response import TemplateResponse
 
-from matches.forms import MatchForm, MatchPlayerForm
+from matches.forms import MatchForm, MatchPlayerForm, MapForm
 
 def create_match(request):
     # match_instance = Match(author = request.user)
@@ -58,16 +58,48 @@ def swapsides_match(request, match_id):
     match.action_set.all().delete();
     return HttpResponseRedirect(reverse('stat-keeper', args=[match.id]))
 
-    
+def create_next_match(request, match_id):
+    map_id = request.POST.get("match_map")
+    last_match = models.Match.objects.get(id=match_id)
+    new_match = models.Match(
+        tournament = last_match.tournament,
+        collection = last_match.collection,
+        match_identifier = last_match.match_identifier,
+        set_number = last_match.set_number + 1,
+        match_map_id = map_id
+    )
+    new_match.save()
+    for match_player in last_match.matchplayer_set.all():
+        models.MatchPlayer.objects.create(
+            player_id = match_player.player_id, 
+            race = match_player.race,
+            side = match_player.side,
+            color = match_player.color,
+            match_id = new_match.id,
+        )
+    return HttpResponseRedirect(reverse('stat-keeper', args=[new_match.id]))
+
+def change_match_map(request, match_id):
+    map_id = request.POST.get("match_map")
+    match = models.Match.objects.get(id=match_id)
+    match.map_id = map_id
+    match.action_set.all().delete();
+    match.save()
+    return HttpResponseRedirect(reverse('stat-keeper', args=[match.id]))
 
 def stat_keeper(request, match_id):
     match = models.Match.objects.get(id=match_id)
     player_left = match.matchplayer_set.filter(side='left')[0]
     player_right = match.matchplayer_set.filter(side='right')[0]
+    maps = dict((m.id, "%s%s" % (settings.MEDIA_URL, m.map_file))
+                for m in models.Map.objects.all())
+    maps = simplejson.dumps(maps)
     return render_to_response(
         'stat_keeper/stat_keeper.html',
         dict(
             match = match,
+            map_form = MapForm(),
+            maps = maps,
             match_data = simplejson.dumps(match.to_dict()),
             player_left_data = simplejson.dumps(player_left.to_dict()),
             player_right_data = simplejson.dumps(player_right.to_dict()),
@@ -103,8 +135,9 @@ def save_action(request, match_id, action_id):
 def create_action(request, match_id):
     action_data = simplejson.loads(request.POST.get("model"))
     match = models.Match.objects.get(id=match_id)
-    side = action_data['side']
-    del action_data['side']
+    side = action_data.get('side')
+    if side:
+        del action_data['side']
     action = models.Action(**action_data)
     action.match = match
     if side:
@@ -132,11 +165,11 @@ def save_match(request, match_id):
         if key == "winner" and match_data['winner'] != match.winner_id:
             winner = match_data['winner']
             legal_winner = False
-            for match_player in match.players.all():
-                if match_player.player_id == winner:
+            for player in match.players.all():
+                if player.id == winner:
                     legal_winner = True
             if legal_winner:
-                match.winner = winner
+                match.winner_id = winner
             else:
                 raise AttributeError, "The winner must be one of the players in a match"
                 

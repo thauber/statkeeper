@@ -66,19 +66,16 @@ ul.nav.pills.race {
 .timer {
     margin: 20px 0px 0px;
 }
-.player.uneditable img {
+.player img {
     padding-top: 8px;
 }
-.player.uneditable p {
+.player p {
     width: 300px;
     font-weight: bold;
     font-size: 18px;
 }
 .match-hint {
     text-align: center;
-}
-#action-content #map-view{
-    width: 500px;
 }
 #action-content {
     position: relative;
@@ -279,6 +276,9 @@ input.quantity {
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     width: 110px;
+    position: absolute;
+    top: 40px;
+    right: 10px;
 }
 
 #map-popup .controls {
@@ -338,6 +338,7 @@ input.quantity {
 }
 #map-popup.action-popup {
     padding-top: 10px;
+    width:200px;
 }
 .fullscreen {
     position: absolute;
@@ -429,4 +430,18 @@ div.settings {
 }
 .SKForcesPhase p {
     margin: 0px;
+}
+#remove-action-controls, #other-action-controls {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    opacity: .8;
+    font-weight: bold;
+}
+.map-selector-modal {
+    width: 330px;
+    display: none;
+}
+.map-preview {
+    width: 500px;
 }

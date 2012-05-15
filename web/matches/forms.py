@@ -38,3 +38,9 @@ class MatchForm(forms.ModelForm):
     def get_collection(self):
         return "Round of %s: Group %s" % (
             self.cleaned_data['ro'], self.cleaned_data['group'])
+
+
+class MapForm(forms.ModelForm):
+    class Meta:
+        model = Match
+        fields = ('match_map',)

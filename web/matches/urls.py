@@ -6,6 +6,8 @@ urlpatterns = patterns('',
 
     url(r'create/?$', create_match),
     url(r'swapsides/(\d+)?$', swapsides_match, name="match-swap-sides"),
+    url(r'create_next/(\d+)?$', create_next_match, name="match-create-next"),
+    url(r'change_map/(\d+)?$', change_match_map, name="match-change-map"),
     url(r'^(\d+)/?$', handle_match),
     url(r'^(\d+)/actions/?$', handle_action),
     url(r'^(\d+)/actions/(\d+)/?$', handle_action),

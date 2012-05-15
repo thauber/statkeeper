@@ -11,6 +11,29 @@
 <link rel="stylesheet" href="{{MEDIA_URL}}css/statkeeper.css"/>
 
 <script>
+    PreviewMaps = {{maps|safe}};
+    jQuery(function() {
+        var map_select = jQuery("#change-map-form select")
+            .add("#new-set-form select");
+        var map = jQuery(".map-preview");
+        map_select.change(function(evt) {
+            var val = $(evt.target).val();
+            console.log(val);
+            if (val) {
+                map.attr('src', PreviewMaps[val]);
+                map.show();
+            } else {
+                map.hide();
+            }
+        });
+        map_select.change();
+        $('.form-submit').click(function(evt) {
+            var target = $(evt.target);
+            var formID = target.attr("data-form-submit");
+            var form = $("#"+formID)
+            form.submit();
+        })
+    });
     $(function() {
         ESB.RaceImgMap = {
             terran: "{{MEDIA_URL}}icons/Terran.png",
@@ -35,8 +58,6 @@
         window.MatchView = new SKMatchView({match: BaseMatch, el: $("#match-content")});
         window.QueueView = new SKActionQueueView({el: $("#action-queue")});
         window.MatchActions = [];
-        QueueView.setMatchView(MatchView);
-        MatchView.setQueueView(QueueView);
         MatchView.render();
         window.MediaURL = "{{MEDIA_URL}}";
 //TODO        queueView.render();
@@ -65,6 +86,12 @@
             <li><a class="swap" href="#">
                 <i class="icon-refresh"></i> Swap Player Sides
             </a></li>
+            <li><a data-toggle="modal" href="#NextSetModal">
+                <i class="icon-step-forward"></i> Create Next Set
+            </a></li>
+            <li><a data-toggle="modal" href="#ChangeMapModal">
+                <i class="icon-pencil"></i> Change Map
+            </a></li>
         </ul>
     </div>
 {% endblock %}
@@ -73,6 +100,48 @@
 <div class="row">
     <div id="match-content" class="span9"></div>
     <div id="action-queue" class="span3"></div>
+</div>
+<div class="modal map-selector-modal" id="ChangeMapModal">
+  <div class="modal-header">
+    <button class="close" data-dismiss="modal">&times;</button>
+    <h3>Choose the correct map for this match</h3>
+  </div>
+  <div class="modal-body">
+    <form id="change-map-form" action="{% url match-change-map match.id %}" method=post>
+      {% csrf_token %}
+      {{ map_form.match_map }}
+      <div>
+          <img class="map-preview" src=""/>
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer">
+    <a href="#" data-dismiss="modal" class="btn">Close</a>
+    <a href="#" class="btn btn-primary form-submit" data-form-submit="change-map-form">
+        Change Map
+    </a>
+  </div>
+</div>
+<div class="modal map-selector-modal" id="NextSetModal">
+  <div class="modal-header">
+    <button class="close" data-dismiss="modal">&times;</button>
+    <h3>Chose the map for the next set:</h3>
+  </div>
+  <div class="modal-body">
+    <form id="new-set-form" method=post action="{% url match-create-next match.id %}">
+      {% csrf_token %}
+      {{ map_form.match_map }}
+      <div>
+          <img class="map-preview" src=""/>
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer">
+    <a href="#" data-dismiss="modal" class="btn">Close</a>
+    <a href="#" class="btn btn-primary form-submit" data-form-submit="new-set-form">
+        Create Next Set
+    </a>
+  </div>
 </div>
 {% endblock %}
 
@@ -85,43 +154,18 @@
     </div>
     <hr>
     <div class="row">
-        <% if (match.get("state") == SKMatch.StateMap.unpublished) { %>
-            <p class="match-hint">Add both players' names and races to publish.</p>
-        <% } else if (match.get("state") == SKMatch.StateMap.published) { %>
-            <% if (loading) { %>
-                <img src="{{MEDIA_URL}}img/loader.png"/>
-            <% } else { %>
-                <p class="match-hint">Click start as soon as the match begins.</p>
-            <% } %>
-        <% } else if (match.get("state") == SKMatch.StateMap.started) { %>
+        <% if (match.get("finished")) { %>
+            <p class="match-hint">This match is finished. There is nothing left to do here.</p>
+        <% } else if (match.get("started")) { %>
             <div id="action-content" class="span9"></div>
         <% } else { %>
-            <p class="match-hint">This match is finished. There is nothing left to do here.</p>
+            <p class="match-hint">Click start as soon as the match begins.</p>
         <% } %>
     </div>
 </script>
 <script type="text/template" id="SKPlayer">
-    <% if(editable) { %>
-        <input type="text" class="player-name-input" value="<%= player.get("name") %>"
-          placeholder="Add player's name..." class="xlarge"/>
-        <ul class="nav nav-pills race">
-            <li class="dropdown">
-                <a class="dropdown-toggle race-selection" data-toggle="dropdown" >
-                    <% if(raceSelectedImg) { %>
-                        <img class='selection' src='<%=raceSelectedImg%>' height='<%=size%>' width='<%=size%>'/>
-                    <% } else { %>
-                        <p class="empty-race">Race</p>
-                    <% } %>
-                    <b class="caret"></b>
-                </a>
-                <ul class="dropdown-menu race-dropdown-menu _race_dropdown">
-                </ul>
-            </li>
-        </ul>
-    <% } else { %>
-        <p><%= player.get("name") %></p>
-        <img class='selection' src='<%=raceSelectedImg%>' height='<%=size%>' width='<%=size%>'/>
-    <% } %>
+    <p><%= player.get("name") %></p>
+    <img class='selection' src='<%=raceSelectedImg%>' height='<%=size%>' width='<%=size%>'/>
 </script>
 <script type="text/template" id="SKRace">
     <li><a class="_race_option" data-race="<%=race%>">
@@ -130,21 +174,14 @@
 </script>
 <script type="text/template" id="SKMatchControls">
     <div id="next-state-button">
-    <% switch (match.get('state')){
-        case SKMatch.StateMap.unpublished: %>
-            <a class="btn btn-primary">Publish</a>
-    <%      break;
-        case SKMatch.StateMap.published: %>
-            <a class="btn btn-success">Start</a>
-    <%      break;
-        case SKMatch.StateMap.started: %>
+    <% if (match.get('finished')){ %>
+            <a class="btn disabled">Finished</a>
+    <% } else if (match.get('started')){ %>
+            <a class="btn btn-danger finish-match">Finish</a>
             <p class="timer"><%=timer.displayClock()%></p>
-            <a class="btn btn-danger">End</a>
-    <%      break;
-        case SKMatch.StateMap.ended: %>
-            <a class="btn btn-disabled">Finished</a>
-    <%      break;
-    }%>
+    <% } else { %>
+            <a class="btn btn-success start-match">Start</a>
+    <% } %>
     </div>
 </script>
 <script type="text/template" id="SKActionControlView">
@@ -334,6 +371,9 @@
             <%=startedAt%>
         <% } %>
         </p>
+        <a class="action-popup-control action-close" data-action-index=<%=actionIndex%> href="#">
+            <i class="icon-white icon-remove"></i>
+        </a>
         <a class="action-popup-control action-delete" data-action-index=<%=actionIndex%> href="#">
             <i class="icon-white icon-trash"></i>
         </a>
@@ -357,31 +397,43 @@
     <div id="map-popup">
     <% 
     var length=actions.length, i, action;
+    console.log("Position:", position);
     for (i=0; i < length; i++) {
         action = actions[i];
-        if (action.sym) {
+        console.log("Name: ", action.name);
+        console.log("is Positionless?",(action.positionless && !position));
+        console.log("is Positionfull?",(!action.positionless && position));
+        if ((action.positionless && !position) || (!action.positionless && position)){
+            if (action.sym) {
     %>
-        <a class="btn symmetric action-control"
-            data-position-x="<%=position.x%>"
-            data-position-y="<%=position.y%>"
-            data-action-type="<%=action.action_type%>"
-        ><%=action.name%></a>
-    <% } else { %>
-        <div class="btn-group controls">
-        <a class="btn btn-primary left action-control"
-            data-position-x="<%=position.x%>"
-            data-position-y="<%=position.y%>"
-            data-action-type="<%=action.action_type%>"
-            data-action-side="left"
-        ><%=action.name.substr(0,action.name.length/2)%></a>
-        <a class="btn btn-danger right action-control"
-            data-position-x="<%=position.x%>"
-            data-position-y="<%=position.y%>"
-            data-action-type="<%=action.action_type%>"
-            data-action-side="right"
-        ><%=action.name.substr(action.name.length/2)%></a>
-        </div>
-    <% 
+            <a class="btn symmetric action-control"
+                <% if (position) { %>
+                data-position-x="<%=position.x%>"
+                data-position-y="<%=position.y%>"
+                <% } %>
+                data-action-type="<%=action.action_type%>"
+            ><%=action.name%></a>
+        <% } else { %>
+            <div class="btn-group controls">
+            <a class="btn btn-primary left action-control"
+                <% if (position) { %>
+                data-position-x="<%=position.x%>"
+                data-position-y="<%=position.y%>"
+                <% } %>
+                data-action-type="<%=action.action_type%>"
+                data-action-side="left"
+            ><%=action.name.substr(0,action.name.length/2)%></a>
+            <a class="btn btn-danger right action-control"
+                <% if (position) { %>
+                data-position-x="<%=position.x%>"
+                data-position-y="<%=position.y%>"
+                <% } %>
+                data-action-type="<%=action.action_type%>"
+                data-action-side="right"
+            ><%=action.name.substr(action.name.length/2)%></a>
+            </div>
+        <% 
+            }
         }
     } 
     %>
@@ -440,5 +492,22 @@
         <div class="clear"></div>
     </div>
 <div>
+</script>
+<script type="text/template" id="SKMapControlView">
+<div id="map-container">
+<% if (displayingControlPopup) { %>
+<a class="btn btn-danger" id="remove-action-controls">
+    <i class="icon-remove"></i>
+    Close
+</a>
+<% } else { %>
+<a class="btn btn-primary" id="other-action-controls">
+    <i class="icon-exclamation-sign"></i>
+    Other
+    <span class="caret"></span>
+</a>
+<% } %>
+<img src="<%=mapURL%>" id="map-view"/>
+</div>
 </script>
 {% endblock %}

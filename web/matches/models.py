@@ -19,7 +19,7 @@ Races = enum("terran", "protoss", "zerg")
 
 class Match(models.Model):
     started = models.BooleanField()
-    ended = models.BooleanField()
+    finished = models.BooleanField()
     players = models.ManyToManyField(
         "Player", through="MatchPlayer", related_name="matches")
     winner = models.ForeignKey(
@@ -32,9 +32,10 @@ class Match(models.Model):
 
     def to_dict(self):
         return dict(
-            state           = self.state,
-            winner          = self.winner,
+            winner          = self.winner_id,
             match_map       = self.match_map.to_dict(),
+            started         = self.started,
+            finished        = self.finished,
             id              = self.id,
         )
 

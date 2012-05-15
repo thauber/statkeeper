@@ -5,7 +5,6 @@ makeTestMatch = function() {
     var leftPlayer = new SKPlayer({race: 'protoss', name: 'Tony'})
     var rightPlayer = new SKPlayer({race: 'terran', name: 'Flo'})
     MatchView.match = new SKMatch(
-        {state: 'started'},
         {leftPlayer:leftPlayer, rightPlayer: rightPlayer}
     )
     MatchView.leftPlayerView = null;
@@ -55,7 +54,6 @@ _.extend(ESB.Timer.prototype, Backbone.Events, {
 });
 
 ESB.Timer.displayClock = function(time){
-    console.log(time);
     if (time!=null) {
         var minutes = Math.floor(time / 60);
         var seconds = Math.floor(time % 60);

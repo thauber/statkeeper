@@ -123,7 +123,6 @@ jQuery(function() {
     var map = jQuery("#map_preview");
     map_select.change(function() {
         var val = map_select.val();
-        console.log(PreviewMaps[val]);
         if (val) {
             map.attr('src', PreviewMaps[val]);
             map.show();
