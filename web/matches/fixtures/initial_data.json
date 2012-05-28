@@ -318,5 +318,14 @@
             "slug": "ohana",
             "map_file": "maps/ohana.jpg"
         }
+    },
+    {
+        "pk": 1,
+        "model": "matches.Tournament",
+        "fields": {
+            "name": "GSL Season 2 Code S",
+            "style": "GSL",
+            "slug": "gsl-season-2-code-s"
+        }
     }
 ]

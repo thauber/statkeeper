@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.admin.widgets import AdminDateWidget 
-from matches.models import Match, MatchPlayer
+from matches.models import Game, MatchPlayer, Match
 import datetime
 
 class MatchPlayerForm(forms.ModelForm):
@@ -8,39 +8,20 @@ class MatchPlayerForm(forms.ModelForm):
         model = MatchPlayer
         fields = ('player', 'race')
 
-
-class MatchForm(forms.ModelForm):
-    class Meta:
-        model = Match
-        fields = ('match_map', 'tournament', 'set_number', 'match_identifier')
-    tournament = forms.ChoiceField(
-        label="Season", choices=[("GSL Season 2 Code S", "GSL Season 2 Code S")])
-    ro = forms.ChoiceField(label="Round of", choices=[
-        ("32","32"),
-        ("16","16"),
-        ("8","8"),
-        ("4","4"),
-        ("Championship","Championship"),
-    ])
-    group = forms.ChoiceField(label="Group", choices=[
-        ("A","A"),
-        ("B","B"),
-        ("C","C"),
-        ("D","D"),
-        ("E","E"),
-        ("F","F"),
-        ("G","G"),
-        ("H","H"),
-    ])
+class MatchForm(forms.Form):
+    collection = forms.CharField(max_length=63,)# widget=forms.HiddenInput)
     match_identifier = forms.IntegerField(label="Match Number")
-    set_number = forms.IntegerField(label="Set Number")
 
-    def get_collection(self):
-        return "Round of %s: Group %s" % (
-            self.cleaned_data['ro'], self.cleaned_data['group'])
-
+class GameForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(GameForm, self).__init__(*args, **kwargs)
+        self.fields['game_map'].label = "Map"
+        self.fields['game_number'].label = "Game Number"
+    class Meta:
+        model = Game
+        fields = ('game_map', 'game_number')
 
 class MapForm(forms.ModelForm):
     class Meta:
-        model = Match
-        fields = ('match_map',)
+        model = Game
+        fields = ('game_map',)
