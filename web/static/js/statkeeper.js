@@ -1,36 +1,63 @@
 $(function() {
-SKMatchView = Backbone.View.extend({
+
+// fix sub nav on scroll
+var $win = $(window)
+  , $nav = $('.subnav')
+  , navTop = $('.subnav').length && $('.subnav').offset().top - 40
+  , isFixed = 0
+
+processScroll()
+
+// hack sad times - holdover until rewrite for 2.1
+$nav.on('click', function () {
+  if (!isFixed) setTimeout(function () {  $win.scrollTop($win.scrollTop() - 47) }, 10)
+})
+
+$win.on('scroll', processScroll)
+
+function processScroll() {
+  var i, scrollTop = $win.scrollTop()
+  if (scrollTop >= navTop && !isFixed) {
+    isFixed = 1
+    $nav.addClass('subnav-fixed')
+  } else if (scrollTop <= navTop && isFixed) {
+    isFixed = 0
+    $nav.removeClass('subnav-fixed')
+  }
+}
+
+SKGameView = Backbone.View.extend({
 /*
  * This is the main root view. It is responsible for choosing the right view for the portions
  * of the view.
  */
-    tmpl: ESB.Template.make('SKMatchView'),
+    tmpl: ESB.Template.make('SKGameView'),
     leftPlayer: {},
     rightPlayer: {},
-    match: {},
+    game: {},
     tagName: 'div',
     events: {
-        "click .start-match"            : "start",
-        "click .finish-match"           : "confirmFinish"
+        "click .start-game"            : "start",
+        "click .finish-game"           : "confirmFinish"
     },
     initialize: function() {
-        if (this.options.match) {
-            this.match = this.options.match
+        if (this.options.game) {
+            this.game = this.options.game
         } else {
-            this.match = new SKMatch({},{
+            this.game = new SKGame({},{
                 leftPlayer: new SKPlayer(),
                 rightPlayer: new SKPlayer()
             });
         }
-        this.matchStarted = this.match.get('started')
-        if (this.matchStarted) {
+        this.gameStarted = this.game.get('started')
+        if (this.gameStarted) {
             this.started();
         }
-        this.matchFinished = this.match.get('finished')
-        if (this.matchFinished) {
+        this.gameFinished = this.game.get('finished')
+        if (this.gameFinished) {
             this.finished();
         }
-        this.match.on('sync', this.checkState, this);
+        this.game.on('sync', this.checkState, this);
 
         this.loading = false;
         this.defaultForces = {
@@ -41,13 +68,13 @@ SKMatchView = Backbone.View.extend({
     render: function() {
         $(this.el).html(
             this.tmpl({
-                match: this.match,
+                game: this.game,
                 loading:this.loading
             })
         );
         this.prepareHeaderArea();
         
-        if (this.match.get('started')) {
+        if (this.game.get('started')) {
             this.prepareActionArea();
         }
 
@@ -56,21 +83,21 @@ SKMatchView = Backbone.View.extend({
     prepareHeaderArea: function() {
         if (!this.leftPlayerView) {
             this.leftPlayerView = new SKPlayerView({
-                match:this.match,
-                player:this.match.leftPlayer,
+                game:this.game,
+                player:this.game.leftPlayer,
                 root:this
             })
         }
         if (!this.rightPlayerView) {
             this.rightPlayerView = new SKPlayerView({
-                match:this.match,
-                player:this.match.rightPlayer,
+                game:this.game,
+                player:this.game.rightPlayer,
                 root:this
             })
         }
         if (!this.controls) {
-            this.controls = new SKMatchControls({
-                match:this.match,
+            this.controls = new SKGameControls({
+                game:this.game,
                 root:this
             })
         }
@@ -81,7 +108,7 @@ SKMatchView = Backbone.View.extend({
         this.rightPlayerView.setElement(this.$("#player-right"), true);
         this.rightPlayerView.render();
 
-        this.controls.setElement(this.$("#match-controls"), true);
+        this.controls.setElement(this.$("#game-controls"), true);
         this.controls.render();
     },
     prepareActionArea: function () {
@@ -90,28 +117,28 @@ SKMatchView = Backbone.View.extend({
             this.currentActionView.render();
         } else {
             if (!this.mapControl) {
-                this.mapControl = new SKMapControlView({map: this.match.get("match_map")});
+                this.mapControl = new SKMapControlView({map: this.game.get("game_map")});
             }
             this.mapControl.setElement(this.$("#action-content"), true);
             this.mapControl.render();
         }
     },
     checkState: function() {
-        if (this.match.get("started") && !this.matchStarted) {
-            this.matchStarted = true;
+        if (this.game.get("started") && !this.gameStarted) {
+            this.gameStarted = true;
             this.started();
         }
-        if (this.match.get("finished") && !this.matchFinished) {
-            this.matchStarted = true;
+        if (this.game.get("finished") && !this.gameFinished) {
+            this.gameStarted = true;
             this.finished();
         }
     },
     start: function() {
-        this.match.set("started", true);
-        this.match.save();
+        this.game.set("started", true);
+        this.game.save();
     },
     started: function() {
-        MatchTimer.start()
+        GameTimer.start()
         this.render();
     },
     confirmFinish: function() {
@@ -123,8 +150,8 @@ SKMatchView = Backbone.View.extend({
         if ("right") {
             winner = BaseRightPlayer
         }
-        this.match.set({"finished": true, "winner":winner.get("player_id")});
-        this.match.save();
+        this.game.set({"finished": true, "winner":winner.get("player_id")});
+        this.game.save();
     },
     finished: function() {
         this.render();
@@ -141,9 +168,9 @@ SKMapControlView = Backbone.View.extend({
         "click div.static-phase"        :"editActionPhase",
         "click .action-delete"          :"deleteAction",
         "click .action-edit"            :"editAction", 
-        "click #other-action-controls"  :"doCreateOtherActionControlPopup",
-        "click #remove-action-controls" :"removeActionControlPopup",
         "click .action-close"           :"removeActionPopup",
+        "click #other-action-controls"  :"doCreateOtherActionControlPopup",
+        "click #remove-action-controls" :"removeActionControlPopup"
     },
     actionControlPopupTemplate: ESB.Template.make('SKActionControlPopup'),
     actionPopupTemplate: ESB.Template.make('SKActionPopup'),
@@ -314,7 +341,9 @@ SKMapControlView = Backbone.View.extend({
             "Deleting an action can not be undone Do you wish to continue?"
         );
         if (confirmation) {
-            this.actions.splice(parseInt(target.data("action-index")), 1);
+            var index = target.data("action-index")
+            this.actions[index].destroy()
+            this.actions.splice(index, 1);
             this.selectAction(null);
             this.render();
         }
@@ -353,10 +382,12 @@ SKMapControlView = Backbone.View.extend({
         } else {
             var position = null;
             if (target.data('position-x') || target.data('position-y')) {
+                var map = this.$("#map-container");
                 var position = {
-                    x:target.data('position-x'),
-                    y:target.data('position-y')
+                    x:(target.data('position-x')/map.width())*100,
+                    y:(target.data('position-y')/map.height())*100,
                 };
+                console.log(position)
             }
             action = SKAction.createAction(
                 actionType,
@@ -377,7 +408,7 @@ SKActionControlView = Backbone.View.extend({
     tmpl: ESB.Template.make('SKActionControlView'),
     tagName: 'div',
     initialize: function() {
-        this.match = this.options.match;
+        this.game = this.options.game;
         this.root = this.options.root;
     },
     render: function() {
@@ -396,7 +427,7 @@ SKActionControlView = Backbone.View.extend({
     tmpl: ESB.Template.make('SKActionControlView'),
     tagName: 'div',
     initialize: function() {
-        this.match = this.options.match;
+        this.game = this.options.game;
         this.root = this.options.root;
     },
     render: function() {
@@ -411,23 +442,23 @@ SKActionControlView = Backbone.View.extend({
     }
 });
 
-SKMatchControls = Backbone.View.extend({
+SKGameControls = Backbone.View.extend({
 /*
- * The view resposible for the clock and the buttons that progress the match
+ * The view resposible for the clock and the buttons that progress the game
  *
  * Currently just the buttons
  */
-    tmpl: ESB.Template.make('SKMatchControls'),
+    tmpl: ESB.Template.make('SKGameControls'),
     tagName: 'div',
     initialize: function() {
-        this.match = this.options.match;
+        this.game = this.options.game;
         this.root = this.options.root;
-        MatchTimer.on("tick", this.render, this);
+        GameTimer.on("tick", this.render, this);
     },
     render: function() {
         options = {
-            match: this.match,
-            timer: MatchTimer
+            game: this.game,
+            timer: GameTimer
         }
         $(this.el).html(
             this.tmpl(options)
@@ -435,7 +466,7 @@ SKMatchControls = Backbone.View.extend({
         return this.el;
     },
     updateTimer: function() {
-        this.$(".timer").text(MatchTimer.displayClock());
+        this.$(".timer").text(GameTimer.displayClock());
     }
 })
 
@@ -452,7 +483,7 @@ SKPlayerView = Backbone.View.extend({
     tagName: 'div',
     initialize: function() {
         this.player = this.options.player || {};
-        this.match = this.options.match;
+        this.game = this.options.game;
     },
     render: function() {
         var options = {

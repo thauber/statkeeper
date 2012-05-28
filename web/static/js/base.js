@@ -1,18 +1,6 @@
 window.ESB = {};
 Backbone.emulateJSON = true;
 
-makeTestMatch = function() {
-    var leftPlayer = new SKPlayer({race: 'protoss', name: 'Tony'})
-    var rightPlayer = new SKPlayer({race: 'terran', name: 'Flo'})
-    MatchView.match = new SKMatch(
-        {leftPlayer:leftPlayer, rightPlayer: rightPlayer}
-    )
-    MatchView.leftPlayerView = null;
-    MatchView.rightPlayerView = null;
-    MatchView.controls = null;
-    MatchView.render()
-}
-
 ESB.Template = {
     make: function (id) {
         return _.template($('#'+id).html());

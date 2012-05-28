@@ -1,8 +1,8 @@
 
-SKMatch = Backbone.Model.extend({
+SKGame = Backbone.Model.extend({
     defaults: {
         winner: null,
-        match_map: null,
+        game_map: null,
     },
     initialize: function(attrs, options) {
         this.leftPlayer = options.leftPlayer;
@@ -47,7 +47,7 @@ SKAction = Backbone.Model.extend({
         this.get("changes").push(change);
     },
     urlRoot: function() {
-        return "/matches/" + MatchView.match.id + "/actions/"
+        return "/matches/" + GameView.game.id + "/actions/"
     },
     queueSave: function() {
         if (this.saving) {
@@ -121,7 +121,7 @@ SKAction.createAction = function(action_type, side, position) {
         }
     }
     var actionAttrs = {
-        started_at: MatchTimer.time,
+        started_at: GameTimer.time,
     };
     if (position) {
         actionAttrs.position = position;
@@ -130,11 +130,11 @@ SKAction.createAction = function(action_type, side, position) {
         actionAttrs.side = side;
     }
     actionAttrs.action_type = action.action_type;
-    if (!window.MatchActions) {
-        window.MatchActions = [];
+    if (!window.GameActions) {
+        window.GameActions = [];
     }
     var actionObj = new SKAction(actionAttrs, action);
-    window.MatchActions.push(actionObj);
+    window.GameActions.push(actionObj);
     return actionObj;
 };
 
@@ -162,31 +162,31 @@ SKAction.Actions = [
     {name: "Created Unit", action_type:SKAction.ActionMap.unit_creation, sym:false, positionless: true}
 ];
 
-SKMatch.StateMap = {
+SKGame.StateMap = {
      unpublished :"unpublished",
      published   :"published",
      started     :"started",
      ended       :"ended"
 }; 
 
-SKMatch.States = [
-    SKMatch.StateMap.unpublished,
-    SKMatch.StateMap.published,
-    SKMatch.StateMap.started,
-    SKMatch.StateMap.ended
+SKGame.States = [
+    SKGame.StateMap.unpublished,
+    SKGame.StateMap.published,
+    SKGame.StateMap.started,
+    SKGame.StateMap.ended
 ]
 
-SKMatch.nextState = function(currentState) {
-    currentIndex = SKMatch.States.indexOf(currentState)
-    if (currentIndex < SKMatch.States.length-1) {
-        return SKMatch.States[currentIndex+1];
+SKGame.nextState = function(currentState) {
+    currentIndex = SKGame.States.indexOf(currentState)
+    if (currentIndex < SKGame.States.length-1) {
+        return SKGame.States[currentIndex+1];
     }
 }
 
 SKPlayer = Backbone.Model.extend({
 /*    urlRoot: function() {
         var sidePart = this.side? ""+this.side+"/" : "";
-        return "/matches/"+MatchView.match.id+"/player/"+sidePart;
+        return "/matches/"+GameView.game.id+"/player/"+sidePart;
     }
     */
 }); 

@@ -74,17 +74,17 @@ ul.nav.pills.race {
     font-weight: bold;
     font-size: 18px;
 }
-.match-hint {
+.game-hint {
     text-align: center;
 }
 #action-content {
     position: relative;
     background-color: black;
 }
-#action-content .match-control-group{
+#action-content .game-control-group{
     text-align: center;
 }
-#action-content .player.match-control {
+#action-content .player.game-control {
     margin-top: 10px;
     font-size: 24px;
     font-weight: bold;
@@ -92,7 +92,7 @@ ul.nav.pills.race {
     width: 187px;
 }
 
-#action-content .nonplayer.match-control {
+#action-content .nonplayer.game-control {
     margin-top: 10px;
     font-size: 24px;
     font-weight: bold;
@@ -252,15 +252,15 @@ input.quantity {
     float: left;
 }
 .form-horizontal .control-group {
-    padding: 25px 0px 0px;
-    margin-bottom: 0px;
+    padding: 15px 0px 0px;
+    margin-bottom: 10px;
 }
 .player .control-group {
     padding: 10px 0px;
 }
 .form-horizontal .control-group > label {
     padding-right: 10px;
-    width: 60px;
+    width: 90px;
 }
 #map_preview {
     height: 300px;

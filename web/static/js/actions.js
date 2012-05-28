@@ -77,7 +77,7 @@ SKForcesPhase = SKPhase.extend({
 SKOngoingPhase = SKPhase.extend({
     className:"SKOngoingPhase",
     endPhase:function(view) {
-        this.action.set("finished_at", MatchTimer.time);
+        this.action.set("finished_at", GameTimer.time);
     },    
     html: function() {
         return $("#SKOngoingPhase").html();
@@ -256,7 +256,7 @@ _.extend(SKPhaser.prototype, Backbone.Events, {
         }
     },
     changePhase: function(phase, change) {
-        this.action.addChange(change, MatchTimer.time);
+        this.action.addChange(change, GameTimer.time);
         this.trigger('phaser:change', this);
     },
     endPhase: function(phase, view) {
@@ -267,7 +267,7 @@ _.extend(SKPhaser.prototype, Backbone.Events, {
         } else {
             this.action.get("results").push(info);
         }
-        this.action.save();
+        this.action.queueSave();
         var nextPhase = this.getNextPhase(phase); 
         this.startPhase(nextPhase, phase);
     },
@@ -433,7 +433,7 @@ SKActionView = Backbone.View.extend({
     tmpl: ESB.Template.make('SKActionView'),
     initialize: function() {
         this.action = this.options.action;
-        this.match = this.options.match;
+        this.game = this.options.game;
         this.actor = this.options.actor;
         this.receiver = this.options.receiver;
         this.paneIndex = 0;
@@ -531,11 +531,11 @@ SKActionView = Backbone.View.extend({
 
 SKActionView.createActionView = function(options) {
     var side = options.action.get('side');
-    options.actor = options.match.rightPlayer;
-    options.receiver = options.match.leftPlayer;
+    options.actor = options.game.rightPlayer;
+    options.receiver = options.game.leftPlayer;
     if (side == "left") {
-        options.actor = options.match.leftPlayer;
-        options.receiver = options.match.rightPlayer;
+        options.actor = options.game.leftPlayer;
+        options.receiver = options.game.rightPlayer;
     }
     switch (options.action.get('action_type')) {
         case SKAction.ActionMap.baseBuilt:
@@ -648,17 +648,17 @@ SKActionEngagement = SKActionView.extend({
     buildPanes: function() {
         this.panes = [
             new SKPaneUnitComposition({
-                title: this.match.leftPlayer.get("name") + "'s Army",
-                player: this.match.leftPlayer,
+                title: this.game.leftPlayer.get("name") + "'s Army",
+                player: this.game.leftPlayer,
                 armory: {
-                    units: SKArmoryView.Units[this.match.leftPlayer.get("race")]
+                    units: SKArmoryView.Units[this.game.leftPlayer.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
-                title: this.match.rightPlayer.get("name") + "'s Army",
-                player: this.match.rightPlayer,
+                title: this.game.rightPlayer.get("name") + "'s Army",
+                player: this.game.rightPlayer,
                 armory: {
-                    units: SKArmoryView.Units[this.match.rightPlayer.get("race")]
+                    units: SKArmoryView.Units[this.game.rightPlayer.get("race")]
                 }
             })
         ];
@@ -666,17 +666,17 @@ SKActionEngagement = SKActionView.extend({
     createReinforcementPanes: function() {
         return [
             new SKPaneUnitComposition({
-                title: this.match.leftPlayer.get("name") + "'s Reinforcements",
-                player: this.match.leftPlayer,
+                title: this.game.leftPlayer.get("name") + "'s Reinforcements",
+                player: this.game.leftPlayer,
                 armory: {
-                    units: SKArmoryView.Units[this.match.leftPlayer.get("race")]
+                    units: SKArmoryView.Units[this.game.leftPlayer.get("race")]
                 }
             }),
             new SKPaneUnitComposition({
-                title: this.match.rightPlayer.get("name") + "'s Reinforcements",
-                player: this.match.rightPlayer,
+                title: this.game.rightPlayer.get("name") + "'s Reinforcements",
+                player: this.game.rightPlayer,
                 armory: {
-                    units: SKArmoryView.Units[this.match.rightPlayer.get("race")]
+                    units: SKArmoryView.Units[this.game.rightPlayer.get("race")]
                 }
             })
         ];
@@ -912,7 +912,7 @@ SKActionQueueView = Backbone.View.extend({
                 break;
             case SKAction.Stages.reinforcing:
                 this.actions.splice(index, 1);
-                action.addReinforcements(MatchTimer.time);
+                action.addReinforcements(GameTimer.time);
                 this.trigger("reinforceAction", action);
                 break;
             case SKAction.Stages.finished:
@@ -946,7 +946,7 @@ SKActionQueueView = Backbone.View.extend({
                 }, this);
                 setTimeout(autohideAction, 5000);
             case SKAction.Stages.won:
-                action.set("finished_at", MatchTimer.time);
+                action.set("finished_at", GameTimer.time);
                 break;
             case SKAction.Stages.ongoing:
                 action.unset("win_value");
@@ -961,21 +961,21 @@ SKActionQueueView = Backbone.View.extend({
         this.render();
     },
     /*
-     * Match interaction methods.
+     * Game interaction methods.
      *
      * Here are all of the methods involved in communicating with the
      * action queue.
      *
      * find:action-queue
      */
-    setMatchView: function(matchView) {
-        if (this.matchView) {
-            this.matchView.off("queueAction");
-            this.matchView.off("finishAction");
+    setGameView: function(gameView) {
+        if (this.gameView) {
+            this.gameView.off("queueAction");
+            this.gameView.off("finishAction");
         }
-        this.matchView = matchView;
-        this.matchView.on("queueAction", this.queueAction, this);
-        this.matchView.on("finishAction", this.finishAction, this);
+        this.gameView = gameView;
+        this.gameView.on("queueAction", this.queueAction, this);
+        this.gameView.on("finishAction", this.finishAction, this);
     },
     queueAction: function(action) {
         if (action.get('winner')) {

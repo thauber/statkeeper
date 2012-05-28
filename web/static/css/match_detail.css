@@ -1,0 +1,231 @@
+.tournament-select {
+    padding: 20px;
+    font-size: 20px;
+    background: #FFD;
+    margin-top: 10px;
+    text-align: center;
+    border: #FFA 1px solid;
+}
+
+.tournament-select:hover {
+    background: #FFC;
+    border: #FF9 1px solid;
+    text-decoration: none;
+}
+
+.player-detail {
+    margin-top: 20px;
+}
+
+.player-detail h2{
+    padding: 5px 15px;
+}
+
+.player-detail .profile-container, .player-detail img {
+    margin: 0px;
+}
+
+.player-detail .profile-container {
+    overflow: hidden;
+    height: 300px;
+}
+.player-detail-left {
+    text-align: right;
+}
+
+.player-detail-left h2 {
+    background: #BBF;
+}
+.player-detail-right h2 {
+    background: #FBB;
+}
+.match-detail {
+    text-align: center;
+    padding-top: 50px;
+}
+.match-detail .winner-left {
+    background: #BBF;
+    border-color: #AAF;
+}
+.match-detail .winner-right {
+    background: #FBB;
+    border-color: #FAA;
+}
+.match-detail .match-score, .game-score {
+    width: 250px;
+    margin: 10px auto;
+    border: solid 1px;
+    padding: 0px 20px;
+}
+
+.match-detail h2 {
+    font-size: 45px;
+    border-width: 2px;
+    padding: 10px
+}
+.left-score {
+    float: left;
+}
+.right-score {
+    float: right;
+}
+.winner-right .right-score, .winner-left .left-score {
+    font-weight: bold;
+}
+.winner-left .right-score, .winner-right .left-score {
+    font-weight: lighter;
+}
+.match-score .divider {
+    margin: 20px 0px;
+    font-size: 14px;
+}
+.game-score .divider {
+    margin: 5px 0px;
+}
+.game-score .left-score, .game-score .right-score {
+    font-size: 18px;
+    margin: 5px 0px 0px;
+}
+.game-score {
+    width: 200px;
+}
+.nav-tabs > li > a {
+    font-size: 26px;
+    border-radius: 0px;
+    padding: 10px 40px;
+    margin: 0px;
+    border-left: 2px solid #444;
+    border-right: 2px solid #444;
+    border-bottom: 0px none;
+    border-top: 0px none;
+}
+.nav-tabs {
+    border-top: 1px solid #444;
+    border-bottom: 1px solid #444;
+    margin-top: 20px;
+}
+.clear {
+    clear:both;
+}
+.action img {
+    display: inline-block;
+    vertical-align: top;
+    width: 40px;
+    height: 40px;
+    padding-right: 10px;
+}
+.action .info-container {
+    display: inline-block;
+}
+.action h2 {
+    margin-top: 0px;
+    padding: 0px;
+    font-size: 18px;
+    line-height: normal;
+}
+.action .time {
+    margin: 0px;
+    line-height: normal;
+}
+.action .winner {
+    margin:0px;
+    line-height: normal;
+    float: right;
+}
+.action {
+    padding: 10px;
+    background-color: #EEE;
+    border: solid 1px #999;
+    margin: 5px 0px;
+}
+.action-unit_creation h2 {
+    font-size: 14px;
+}
+.action-unit_creation img {
+    float: left;
+    height: 35px;
+    width: 35px;
+    padding-right: 10px;
+}
+.action-unit_creation {
+    padding:0px;
+}
+.actor-left {
+    background-color: #BBF;
+    border-color: #99D;
+}
+.actor-right {
+    background-color: #FBB;
+    border-color: #D99;
+}
+.winner-left-1{
+    background-color: #BBF;
+    border-color: #99D;
+}
+.winner-left-2{
+    background-color: #99F;
+    border-color: #77D;
+}
+.winner-left-3{
+    background-color: #77F;
+    border-color: #55D;
+}
+.winner-right-1{
+    background-color: #FBB;
+    border-color: #D99;
+}
+.winner-right-2{
+    background-color: #F99;
+    border-color: #D77;
+}
+.winner-right-3{
+    background-color: #F77;
+    border-color: #D55;
+}
+.map-container {
+    position: relative;
+}
+.map-marker {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 20px;
+    padding-right: 2px;
+}
+.highlighted {
+    border: solid 2px #FD0;
+}
+
+#player-detail-fixed {
+    display:none;
+    position: fixed;
+    top: 0.1;
+    right: 0;
+    left: 0;
+    z-index: 1030;
+    border-bottom: 2px solid #444;
+}
+
+#player-detail-fixed > div {
+    width: 50%;
+    display: inline-block;
+}
+
+#player-detail-fixed h2 {
+    padding: 5px;
+}
+
+#player-detail-fixed .player-detail-fixed-left {
+    text-align: right;
+    background-color: #BBF;
+}
+#player-detail-fixed .player-detail-fixed-left h2 {
+    padding-right: 200px;
+}
+#player-detail-fixed .player-detail-fixed-right {
+    text-align: left;
+    background-color: #FBB;
+}
+#player-detail-fixed .player-detail-fixed-right h2 {
+    padding-left: 200px;
+}
