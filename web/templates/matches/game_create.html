@@ -10,26 +10,11 @@
 {% endblock %}
 
 {% block header %}
-  <h1>Create a Match:</h1>
+  <h1>Create a Game:</h1>
 {% endblock %}
 {% block content %}
 <div class="row">
-  
-  {% if left_form.non_field_errors or right_form.non_field_errors or match_form.non_field_errors %}
-    <div class="span12 alert alert-error fade in" data-alert="alert">
-      <a class="close" data-dismiss="alert">×</a>
-      {% for error in left_form.non_field_errors %}
-        {{ error|escape }}
-      {% endfor %}
-      {% for error in right_form.non_field_errors %}
-        {{ error|escape }}
-      {% endfor %}
-      {% for error in match_form.non_field_errors %}
-        {{ error|escape }}
-      {% endfor %}
-    </div>
-  {% endif %}
-  <form method="POST" class="span12" id="match-form">
+  <form method="POST" class="span12" id="game-form">
     {% csrf_token %}
     <div class="row form-horizontal">
     <div class="span6 player-left player">
@@ -59,48 +44,47 @@
     </div>
     <div class="row form-horizontal"><div class="span6">
         <div class="control-group">
-        {{ match_form.tournament.label_tag }}
-        {{ match_form.tournament }}
-        {% if match_form.tournament.errors %}
-            <span class="help-inline">
-                {% for error in match_form.tournament.errors %}
-                    {{ error|escape }}
-                {% endfor %}
-            </span>
+            {{ match_form.collection.label_tag }}
+            {{ match_form.collection }}
         </div>
-        {% endif %}
-        <div class="line-form short-form control-group">
-            {{ match_form.ro.label_tag }}
-            {{ match_form.ro }}
-            {{ match_form.group.label_tag }}
-            {{ match_form.group }}
-        </div>
-        <div class="line-form short-form control-group">
-            {{ match_form.match_identifier.label_tag }}
-            {{ match_form.match_identifier }}
-            {{ match_form.set_number.label_tag }}
-            {{ match_form.set_number }}
-        </div>
-        {% if match_form.ro.errors or match_form.group.errors%}
+        {% if match_form.collection.errors %}
         <span class="help-inline">
-            {% for error in match_form.ro.errors %}
-                {{ error|escape }}
-            {% endfor %}
-            {% for error in match_form.group.errors %}
+            {% for error in match_form.collection.errors %}
                 {{ error|escape }}
             {% endfor %}
         </span>
         {% endif %}
+        <div class="control-group">
+            {{ match_form.match_identifier.label_tag }}
+            {{ match_form.match_identifier }}
         </div>
-        <button type="submit" class="btn btn-primary btn-large">Create Match</button>
+        {% if game_form.game_number.errors %}
+        <span class="help-inline">
+            {% for error in game_match.game_number.errors %}
+                {{ error|escape }}
+            {% endfor %}
+        </span>
+        {% endif %}
+        <div class="control-group">
+            {{ game_form.game_number.label_tag }}
+            {{ game_form.game_number }}
+        </div>
+        {% if game_form.game_number.errors %}
+        <span class="help-inline">
+            {% for error in game_match.game_number.errors %}
+                {{ error|escape }}
+            {% endfor %}
+        </span>
+        {% endif %}
+        <button type="submit" class="btn btn-primary btn-large">Create Game</button>
     </div>
     <div class="span6">
         <div class="control-group">
-        {{ match_form.match_map.label_tag }}
-        {{ match_form.match_map }}
-        {% if match_form.match_map.errors %}
+        {{ game_form.game_map.label_tag }}
+        {{ game_form.game_map }}
+        {% if game_form.game_map.errors %}
             <span class="help-inline">
-                {% for error in match_form.match_map.errors %}
+                {% for error in game_form.game_map.errors %}
                     {{ error|escape }}
                 {% endfor %}
             </span>
@@ -119,7 +103,7 @@
 {% block extra_script %}
 PreviewMaps = {{maps|safe}};
 jQuery(function() {
-    var map_select = jQuery("#id_match-match_map");
+    var map_select = jQuery("#id_game-game_map");
     var map = jQuery("#map_preview");
     map_select.change(function() {
         var val = map_select.val();

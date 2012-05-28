@@ -14,11 +14,10 @@
     PreviewMaps = {{maps|safe}};
     jQuery(function() {
         var map_select = jQuery("#change-map-form select")
-            .add("#new-set-form select");
+            .add("#next-game-form select");
         var map = jQuery(".map-preview");
         map_select.change(function(evt) {
             var val = $(evt.target).val();
-            console.log(val);
             if (val) {
                 map.attr('src', PreviewMaps[val]);
                 map.show();
@@ -47,18 +46,18 @@
             'default':"{{MEDIA_URL}}img/target.png",
         }
 
-        window.SKSwapURL = "{% url match-swap-sides match.id %}"
+        window.SKSwapURL = "{% url game-swap-sides game.id %}"
         window.BaseLeftPlayer = new SKPlayer({{player_left_data|safe}});
         window.BaseRightPlayer = new SKPlayer({{player_right_data|safe}});
-        window.BaseMatch = new SKMatch({{match_data|safe}}, {
+        window.BaseGame = new SKGame({{game_data|safe}}, {
             leftPlayer: BaseLeftPlayer,
             rightPlayer: BaseRightPlayer
         });
-        window.MatchTimer = new ESB.Timer();
-        window.MatchView = new SKMatchView({match: BaseMatch, el: $("#match-content")});
+        window.GameTimer = new ESB.Timer();
+        window.GameView = new SKGameView({game: BaseGame, el: $("#game-content")});
         window.QueueView = new SKActionQueueView({el: $("#action-queue")});
-        window.MatchActions = [];
-        MatchView.render();
+        window.GameActions = [];
+        GameView.render();
         window.MediaURL = "{{MEDIA_URL}}";
 //TODO        queueView.render();
         $('.settings .swap').click(function() {
@@ -76,7 +75,7 @@
 {% endblock %}
 
 {% block header %}
-    <h1 class="content-title">Matchup Tracker</h1>
+    <h1 class="content-title">Gameup Tracker</h1>
     <div class="btn-group settings">
         <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
             <i class="icon-cog"></i>
@@ -98,18 +97,18 @@
 
 {% block content %}
 <div class="row">
-    <div id="match-content" class="span9"></div>
+    <div id="game-content" class="span9"></div>
     <div id="action-queue" class="span3"></div>
 </div>
 <div class="modal map-selector-modal" id="ChangeMapModal">
   <div class="modal-header">
     <button class="close" data-dismiss="modal">&times;</button>
-    <h3>Choose the correct map for this match</h3>
+    <h3>Choose the correct map for this game</h3>
   </div>
   <div class="modal-body">
-    <form id="change-map-form" action="{% url match-change-map match.id %}" method=post>
+    <form id="change-map-form" action="{% url game-change-map game.id %}" method=post>
       {% csrf_token %}
-      {{ map_form.match_map }}
+      {{ map_form.game_map }}
       <div>
           <img class="map-preview" src=""/>
       </div>
@@ -125,12 +124,12 @@
 <div class="modal map-selector-modal" id="NextSetModal">
   <div class="modal-header">
     <button class="close" data-dismiss="modal">&times;</button>
-    <h3>Chose the map for the next set:</h3>
+    <h3>Chose the map for the next game:</h3>
   </div>
   <div class="modal-body">
-    <form id="new-set-form" method=post action="{% url match-create-next match.id %}">
+    <form id="next-game-form" method=post action="{% url game-create-next game.id %}">
       {% csrf_token %}
-      {{ map_form.match_map }}
+      {{ map_form.game_map }}
       <div>
           <img class="map-preview" src=""/>
       </div>
@@ -138,28 +137,28 @@
   </div>
   <div class="modal-footer">
     <a href="#" data-dismiss="modal" class="btn">Close</a>
-    <a href="#" class="btn btn-primary form-submit" data-form-submit="new-set-form">
-        Create Next Set
+    <a href="#" class="btn btn-primary form-submit" data-form-submit="next-game-form">
+        Create Next Game
     </a>
   </div>
 </div>
 {% endblock %}
 
 {% block templates %}
-<script type="text/template" id="SKMatchView">
+<script type="text/template" id="SKGameView">
     <div class="row">
         <div class="player span4" id="player-left"></div>
-        <div class="span1" id="match-controls"></div>
+        <div class="span1" id="game-controls"></div>
         <div class="player span4" id="player-right"></div>
     </div>
     <hr>
     <div class="row">
-        <% if (match.get("finished")) { %>
-            <p class="match-hint">This match is finished. There is nothing left to do here.</p>
-        <% } else if (match.get("started")) { %>
+        <% if (game.get("finished")) { %>
+            <p class="game-hint">This game is finished. There is nothing left to do here.</p>
+        <% } else if (game.get("started")) { %>
             <div id="action-content" class="span9"></div>
         <% } else { %>
-            <p class="match-hint">Click start as soon as the match begins.</p>
+            <p class="game-hint">Click start as soon as the game begins.</p>
         <% } %>
     </div>
 </script>
@@ -172,22 +171,22 @@
         <img width="<%=thumbSize%>" height="<%=thumbSize%>" data-race="<%=race%>" src="<%=raceImg%>"/>
     </a></li>
 </script>
-<script type="text/template" id="SKMatchControls">
+<script type="text/template" id="SKGameControls">
     <div id="next-state-button">
-    <% if (match.get('finished')){ %>
+    <% if (game.get('finished')){ %>
             <a class="btn disabled">Finished</a>
-    <% } else if (match.get('started')){ %>
-            <a class="btn btn-danger finish-match">Finish</a>
+    <% } else if (game.get('started')){ %>
+            <a class="btn btn-danger finish-game">Finish</a>
             <p class="timer"><%=timer.displayClock()%></p>
     <% } else { %>
-            <a class="btn btn-success start-match">Start</a>
+            <a class="btn btn-success start-game">Start</a>
     <% } %>
     </div>
 </script>
 <script type="text/template" id="SKActionControlView">
-    <div class="span3 match-control-group" id="left-player-actions">
+    <div class="span3 game-control-group" id="left-player-actions">
         <% for (var i=0; i < playerActions.length; i++) { %>
-            <div><a class="btn match-control player" 
+            <div><a class="btn game-control player" 
                     data-action="<%=playerActions[i].action_type%>"
                     data-name="<%=playerActions[i].name%>"
                     data-player="left">
@@ -195,18 +194,18 @@
             </a></div>
         <% } %>
     </div>
-    <div class="span3 match-control-group" id="playerless-actions">
+    <div class="span3 game-control-group" id="playerless-actions">
         <% for (var i=0; i < nonPlayerActions.length; i++) { %>
-            <div><a class="btn match-control nonplayer" 
+            <div><a class="btn game-control nonplayer" 
                     data-action="<%=nonPlayerActions[i].action_type%>"
                     data-name="<%=nonPlayerActions[i].name%>">
                 <%=nonPlayerActions[i].name%>
             </a></div>
         <% } %>
     </div>
-    <div class="span3 match-control-group" id="right-player-actions">
+    <div class="span3 game-control-group" id="right-player-actions">
         <% for (var i=0; i < playerActions.length; i++) { %>
-            <div><a class="btn match-control player" 
+            <div><a class="btn game-control player" 
                     data-action="<%=playerActions[i].action_type%>"
                     data-name="<%=playerActions[i].name%>"
                     data-player="right">
@@ -397,12 +396,8 @@
     <div id="map-popup">
     <% 
     var length=actions.length, i, action;
-    console.log("Position:", position);
     for (i=0; i < length; i++) {
         action = actions[i];
-        console.log("Name: ", action.name);
-        console.log("is Positionless?",(action.positionless && !position));
-        console.log("is Positionfull?",(!action.positionless && position));
         if ((action.positionless && !position) || (!action.positionless && position)){
             if (action.sym) {
     %>

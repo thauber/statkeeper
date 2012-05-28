@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block header %}
+  <h1>Select a tournament:</h1>
+{% endblock %}
+{% block content %}
+<div class="row">
+    {% for tourny in tournaments %}
+        <a class="span6 tournament-select" href="{% url create-match tourny.id %}">
+            {{ tourny.name }}
+        </a>
+    {% endfor %}
+</div>
+{% endblock %}

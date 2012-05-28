@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% load utils %}
+
+{% block extraHead %}
+    <link rel="stylesheet" href="{{MEDIA_URL}}css/match_detail.css"/>
+    <script>
+    $(function() {
+        $("[data-action-id][data-toggle='highlight']").hover(function(evt) {
+            var target = $(evt.target);
+            var actionID = target.attr('data-action-id');
+            $('[data-action-id="'+actionID+'"]').addClass("highlighted")
+        }, function(evt) {
+            var target = $(evt.target)
+            var actionID = target.attr('data-action-id')
+            $('[data-action-id="'+actionID+'"]').removeClass("highlighted")
+        })
+        var playerDetailTop = $(".player-detail").offset().top - 40;
+        var $win = $(window);
+        var isFixed = 0;
+        window.processScroll = function() {
+            var i, scrollTop = $win.scrollTop();
+            if (scrollTop >= playerDetailTop && !isFixed) {
+                isFixed = 1;
+                $("#player-detail-fixed").show();
+            } else if (scrollTop <= playerDetailTop && isFixed) {
+                isFixed = 0;
+                $("#player-detail-fixed").hide();
+            }
+        }
+        $win.on('scroll', window.processScroll)
+    })
+    </script>
+{% endblock %}
+
+{% block noncontent %}
+<div id="player-detail-fixed">
+    <div class="player-detail-fixed-left"><h2>{{match.players.left.name}}</h2></div><div class="player-detail-fixed-right"><h2>{{match.players.right.name}}</h2></div>
+</div>
+{% endblock %}
+{% block header %}
+  <h1>{{tournament}}:{{collection}}</h1>
+{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="span3 player-detail player-detail-left">
+        <h2>{{match.players.left.name}}</h2>
+        <div class="profile-container span3">
+            <img class="span3" src="{{MEDIA_URL}}/pics/players/{{match.players.left.name|lower}}.png"/>
+        </div>
+    </div>
+    <div class="span6 match-detail">
+        <div class = "match-score
+        {% if match.wins.left > match.wins.right %}
+            winner-left
+        {% else %} {% if match.wins.left < match.wins.right %}
+            winner-right
+        {% endif %}{% endif %}
+        "
+        >
+            <h2 class="left-score">{{match.wins.left}}</h2>
+            <h2 class="right-score">{{match.wins.right}}</h2>
+            <p class="divider">FINAL</p>
+            <div class="clear"></div>
+        </div>
+    {% for game in games %}
+        {% if game.winning_side == "left" %}
+        <div class="game-score winner-left">
+            <p class="left-score">1</p>
+            <p class="right-score">0</p>
+            <p class="divider"><a href="#game{{forloop.counter}}" data-toggle="tab">Game {{forloop.counter}}</a></p>
+            <div class="clear"></div>
+        </div>
+        {% endif %}
+        {% if game.winning_side == "right" %}
+        <div class="game-score winner-right">
+            <p class="left-score">0</p>
+            <p class="right-score">1</p>
+            <p class="divider"><a href="#game{{forloop.counter}}" data-toggle="tab">Game {{forloop.counter}}</a></p>
+            <div class="clear"></div>
+        </div>
+        {% endif %}
+    {% endfor %}
+    </div>
+    <div class="span3 player-detail player-detail-right">
+        <h2>{{match.players.right.name}}</h2>
+        <div class="span3 profile-container">
+            <img class="span3" src="{{MEDIA_URL}}/pics/players/{{match.players.right.name|lower}}.png"/>
+        </div>
+    </div>
+</div>
+<div class="row" id="game-content"><div class="span12">
+    <ul class="nav nav-tabs">
+{% for game in games %}
+        <li
+            {% if forloop.counter == 1 %}class="active"{% endif %}
+        ><a href="#game{{forloop.counter}}" data-toggle="tab">Game {{forloop.counter}}</a></li>
+{% endfor %}
+    </ul>
+    <div class="tab-content">
+{% for game in games %}
+<div id="game{{forloop.counter}}" class="row tab-pane
+    {% if forloop.counter == 1 %}active{% endif %}
+">
+    <div class="span6"> 
+    {% for action in game.actions %}
+        <div class="action
+            actor-{{action.acting_side}}
+            action-{{action.action_type}}
+        {% if action.winning_side %}
+            winner-{{action.winning_side}}-{{action.win_value}}
+        {% endif %}
+        "
+        data-action-id="{{action.id}}"
+        {% if action.action_type != "unit_creation" %}
+        data-toggle="highlight"
+        {% endif %}
+        >
+        {% if action.action_type == "base_invaded" %}
+            <img src="{{MEDIA_URL}}/sc2/icons/attack.png"/>
+            <div class="info-container">
+                {% if action.winning_side and action.winning_side != "tie" %}
+                <p class="winner">
+                    <span class="player-name">
+                        {% if action.winning_side == "left" %}
+                            {{ match.players.left.name }}
+                        {% else %}
+                            {{ match.players.right.name }}
+                        {% endif %}
+                    </span>
+                    won
+                    {% if action.win_value == 1 %}
+                        barely
+                    {% else %}{% if action.win_value == 2 %}
+                        moderately
+                    {% else %}
+                        decisively
+                    {% endif %}{% endif %}
+                {% endif %}
+                {% if action.winning_side and action.winning_side == "tie" %}
+                    <p class="winner">Neither side gained an advantage</p>
+                {% endif %}
+                <p class="time">
+                    <i class="icon-time"></i>
+                    {{action.started_at|clock}}
+                    {% if action.finished_at %}
+                        -{{action.finished_at|clock}}
+                    {% endif %}
+                </p>
+                <h2>
+                    <span class="player-name">
+                        {% if action.acting_side == "left" %}
+                            {{ match.players.left.name }}
+                        {% else %}
+                            {{ match.players.right.name }}
+                        {% endif %}
+                    </span>
+                    attacked
+                    <span class="player-name">
+                        {% if action.acting_side == "right" %}
+                            {{ match.players.left.name }}
+                        {% else %}
+                            {{ match.players.right.name }}
+                        {% endif %}
+                    </span>'s
+                    base.
+                </h2>
+            </div>
+        {% endif %}
+        {% if action.action_type == "harassment" %}
+            <img src="{{MEDIA_URL}}/sc2/icons/attack.png"/>
+            <div class="info-container">
+                {% if action.winning_side and action.winning_side != "tie" %}
+                <p class="winner">
+                    <span class="player-name">
+                        {% if action.winning_side == "left" %}
+                            {{ match.players.left.name }}
+                        {% else %}
+                            {{ match.players.right.name }}
+                        {% endif %}
+                    </span>
+                    won
+                    {% if action.win_value == 1 %}
+                        barely
+                    {% else %}{% if action.win_value == 2 %}
+                        moderately
+                    {% else %}
+                        decisively
+                    {% endif %}{% endif %}
+                {% endif %}
+                {% if action.winning_side and action.winning_side == "tie" %}
+                    <p class="winner">Neither side gained an advantage</p>
+                {% endif %}
+                <p class="time">
+                    <i class="icon-time"></i>
+                    {{action.started_at|clock}}
+                    {% if action.finished_at %}
+                        -{{action.finished_at|clock}}
+                    {% endif %}
+                </p>
+                <h2>
+                    <span class="player-name">
+                        {% if action.acting_side == "left" %}
+                            {{ match.players.left.name }}
+                        {% else %}
+                            {{ match.players.right.name }}
+                        {% endif %}
+                    </span>
+                    harrassed
+                    <span class="player-name">
+                        {% if action.acting_side == "right" %}
+                            {{ match.players.left.name }}
+                        {% else %}
+                            {{ match.players.right.name }}
+                        {% endif %}
+                    </span>'s
+                    base.
+                </h2>
+            </div>
+        {% endif %}
+        {% if action.action_type == "engagement" %}
+            <img src="{{MEDIA_URL}}/sc2/icons/attack.png"/>
+            <div class="info-container">
+                {% if action.winning_side and action.winning_side != "tie" %}
+                <p class="winner">
+                    <span class="player-name">
+                        {% if action.winning_side == "left" %}
+                            {{ match.players.left.name }}
+                        {% else %}
+                            {{ match.players.right.name }}
+                        {% endif %}
+                    </span>
+                    won
+                    {% if action.win_value == 1 %}
+                        barely
+                    {% else %}{% if action.win_value == 2 %}
+                        moderately
+                    {% else %}
+                        decisively
+                    {% endif %}{% endif %}
+                {% endif %}
+                {% if action.winning_side and action.winning_side == "tie" %}
+                    <p class="winner">Neither side gained an advantage</p>
+                {% endif %}
+                <p class="time">
+                    <i class="icon-time"></i>
+                    {{action.started_at|clock}}
+                    {% if action.finished_at %}
+                        -{{action.finished_at|clock}}
+                    {% endif %}
+                </p>
+                <h2>
+                    <span class="player-name">
+                        {{ match.players.left.name }}
+                    </span>
+                    and
+                    <span class="player-name">
+                        {{ match.players.right.name }}
+                    </span>
+                    engaged in battle.
+                </h2>
+            </div>
+        {% endif %}
+        {% if action.action_type == "unit_creation" %}
+            <img src="{{MEDIA_URL}}/sc2/icons/{{ action.force|iconify }}.gif"/>
+            <div class="info-container">
+                <p class="time">
+                    <i class="icon-time"></i>
+                    {{action.started_at|clock}}
+                </p>
+                <h2>
+                    <span class="player-name">
+                        {% if action.acting_side == "left" %}
+                            {{ match.players.left.name }}
+                        {% else %}
+                            {{ match.players.right.name }}
+                        {% endif %}
+                    </span>
+                    created a
+                    <span class="player-name">
+                        {{ action.force }}
+                    </span>
+                </h2>
+            </div>
+        {% endif %}
+        </div>
+        <div class="clear"></div>
+    {% endfor %}
+    </div>
+    <div class="span6 map-container">
+        <img src="{{game.game_map.url}}">
+    {% for action in game.actions %}
+        {% if action.action_type == "base_invaded" %}
+            <img class="map-marker" src="{{MEDIA_URL}}/img/target.png"
+                data-action-id="{{action.id}}"
+                style="top:{{action.position.y}}%; left:{{action.position.x}}%";
+            >
+        {% endif %}
+        {% if action.action_type == "harassment" %}
+            <img class="map-marker" src="{{MEDIA_URL}}/img/target.png"
+                data-action-id="{{action.id}}"
+                style="top:{{action.position.y}}%; left:{{action.position.x}}%";
+            >
+        {% endif %}
+        {% if action.action_type == "engagement" %}
+            <img class="map-marker" src="{{MEDIA_URL}}/img/target.png"
+                data-action-id="{{action.id}}"
+                style="top:{{action.position.y}}%; left:{{action.position.x}}%";
+            >
+        {% endif %}
+    {% endfor %}
+    </div>
+</div>
+{% endfor %}
+    </div>
+
+</div> </div>
+{% endblock %}
