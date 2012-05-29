@@ -170,6 +170,11 @@
 .map-container {
     position: relative;
 }
+.map-container-fixed {
+    position: fixed;
+    top: 100px;
+    left: 702px;
+}
 .map-marker {
     position: absolute;
     width: 20px;

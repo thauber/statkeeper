@@ -16,16 +16,27 @@
             $('[data-action-id="'+actionID+'"]').removeClass("highlighted")
         })
         var playerDetailTop = $(".player-detail").offset().top - 40;
+        var mapTop = $(".map-container").offset().top - 100;
         var $win = $(window);
-        var isFixed = 0;
+        var detailFixed = 0;
+        var mapFixed = 0;
         window.processScroll = function() {
             var i, scrollTop = $win.scrollTop();
-            if (scrollTop >= playerDetailTop && !isFixed) {
-                isFixed = 1;
+            if (scrollTop >= playerDetailTop && !detailFixed) {
+                detailFixed = 1;
                 $("#player-detail-fixed").show();
-            } else if (scrollTop <= playerDetailTop && isFixed) {
-                isFixed = 0;
+            } else if (scrollTop <= playerDetailTop && detailFixed) {
+                detailFixed = 0;
                 $("#player-detail-fixed").hide();
+            }
+            console.log("ScrollTop", scrollTop);
+            console.log("mapTop", mapTop);
+            if (scrollTop >= mapTop && !mapFixed) {
+                mapFixed = 1;
+                $(".map-container").addClass("map-container-fixed");
+            } else if (scrollTop <= mapTop && mapFixed) {
+                mapFixed = 0;
+                $(".map-container").removeClass("map-container-fixed");
             }
         }
         $win.on('scroll', window.processScroll)

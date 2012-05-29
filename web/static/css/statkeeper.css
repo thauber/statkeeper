@@ -445,6 +445,15 @@ div.settings {
 .map-preview {
     width: 500px;
 }
+#player-detail-fixed {
+    display:none;
+    position: fixed;
+    top: 40px;
+    right: 0;
+    left: 0;
+    z-index: 1030;
+    border-bottom: 2px solid #444;
+}
 #FinishGameModal .modal-body {
     text-align: center;
 }
@@ -452,5 +461,33 @@ div.settings {
     padding: 5px 40px;
     font-size: 18px;
 }
+#player-detail-fixed > div {
+    width: 50%;
+    display: inline-block;
+}
 
+#player-detail-fixed h2 {
+    display:inline-block;
+    padding: 5px 10px;
+}
+#player-detail-fixed img {
+    height: 40px;
+    vertical-align: bottom;
+    padding-bottom: 5px;
+}
+
+#player-detail-fixed .player-detail-fixed-left {
+    text-align: right;
+    background-color: #BBF;
+}
+#player-detail-fixed .player-detail-fixed-left img {
+    padding-right: 200px;
+}
+#player-detail-fixed .player-detail-fixed-right {
+    text-align: left;
+    background-color: #FBB;
+}
+#player-detail-fixed .player-detail-fixed-right img {
+    padding-left: 200px;
+}
 

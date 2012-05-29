@@ -32,6 +32,20 @@
             var form = $("#"+formID)
             form.submit();
         })
+        var playerDetailTop = $("#game-content").offset().top - 40;
+        var $win = $(window);
+        var isFixed = 0;
+        window.processScroll = function() {
+            var i, scrollTop = $win.scrollTop();
+            if (scrollTop >= playerDetailTop && !isFixed) {
+                isFixed = 1;
+                $("#player-detail-fixed").show();
+            } else if (scrollTop <= playerDetailTop && isFixed) {
+                isFixed = 0;
+                $("#player-detail-fixed").hide();
+            }
+        }
+        $win.on('scroll', window.processScroll)
     });
     $(function() {
         ESB.RaceImgMap = {
@@ -99,6 +113,15 @@
 {% endblock %}
 
 {% block content %}
+<div id="player-detail-fixed">
+    <div class="player-detail-fixed-left">
+        <h2>{{player_left.player.name}}</h2>
+        <img src="{{MEDIA_URL}}icons/{{player_left.race}}.png"/>
+    </div><div class="player-detail-fixed-right">
+        <img src="{{MEDIA_URL}}icons/{{player_right.race}}.png"/>
+        <h2>{{player_right.player.name}}</h2>
+    </div>
+</div>
 <div class="row">
     <div id="game-content" class="span9"></div>
     <div id="action-queue" class="span3"></div>
