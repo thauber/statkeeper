@@ -38,7 +38,8 @@ SKGameView = Backbone.View.extend({
     tagName: 'div',
     events: {
         "click .start-game"            : "start",
-        "click .finish-game"           : "confirmFinish"
+        "click .finish-game"           : "confirmFinish",
+        "click .winner"                : "finish"
     },
     initialize: function() {
         if (this.options.game) {
@@ -142,12 +143,12 @@ SKGameView = Backbone.View.extend({
         this.render();
     },
     confirmFinish: function() {
-        //TODO FIX so that winner is chosen
-        this.finish("left");
+        $("#FinishGameModal").modal("toggle")   
     },
-    finish: function(winningSide) {
+    finish: function(evt) {
+        winningSide = $(evt.target).data('side')
         winner = BaseLeftPlayer;
-        if ("right") {
+        if (winningSide = "right") {
             winner = BaseRightPlayer
         }
         this.game.set({"finished": true, "winner":winner.get("player_id")});

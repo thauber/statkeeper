@@ -445,3 +445,12 @@ div.settings {
 .map-preview {
     width: 500px;
 }
+#FinishGameModal .modal-body {
+    text-align: center;
+}
+#FinishGameModal .winner {
+    padding: 5px 40px;
+    font-size: 18px;
+}
+
+

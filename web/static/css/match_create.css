@@ -1,0 +1,15 @@
+.tournament-select {
+    padding: 20px;
+    font-size: 20px;
+    background: #FFD;
+    margin-top: 10px;
+    text-align: center;
+    border: #FFA 1px solid;
+}
+
+.tournament-select:hover {
+    background: #FFC;
+    border: #FF9 1px solid;
+    text-decoration: none;
+}
+

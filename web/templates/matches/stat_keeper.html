@@ -161,6 +161,20 @@
             <p class="game-hint">Click start as soon as the game begins.</p>
         <% } %>
     </div>
+    <div class="modal map-selector-modal" id="FinishGameModal">
+      <div class="modal-header">
+        <button class="close" data-dismiss="modal">&times;</button>
+        <h3>Who won?</h3>
+      </div>
+      <div class="modal-body">
+        <a href="#" data-dismiss="modal" class="btn btn-primary winner" data-side="left">
+            {{ player_left.player.name }}
+        </a>
+        <a href="#" data-dismiss="modal" class="btn btn-danger winner" data-side="rigth">
+            {{ player_right.player.name }}
+        </a>
+      </div>
+    </div>
 </script>
 <script type="text/template" id="SKPlayer">
     <p><%= player.get("name") %></p>

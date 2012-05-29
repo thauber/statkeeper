@@ -23,6 +23,7 @@ ESB.Util = {
         return mediaURL+"/sc2/icons/"+icon+".gif";
     }
 }
+GAME_SPEED_MOD = .725
 ESB.Timer = function(){
     this.time = 0;
     this.startTime = 0;
@@ -30,10 +31,10 @@ ESB.Timer = function(){
 _.extend(ESB.Timer.prototype, Backbone.Events, {
     start: function() {
         this.startTime = new Date().getTime()/1000.0;
-        window.setInterval(_.bind(this.tick, this), 1000)
+        window.setInterval(_.bind(this.tick, this), 1000*GAME_SPEED_MOD)
     },
     tick: function() {
-        this.time = (new Date().getTime()/1000) - this.startTime;
+        this.time = ((new Date().getTime()/1000) - this.startTime)/GAME_SPEED_MOD;
         this.trigger("tick", this)
     },
     displayClock: function() {

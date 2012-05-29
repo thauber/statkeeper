@@ -178,6 +178,8 @@ def stat_keeper(request, game_id):
             map_form = MapForm(),
             maps = maps,
             game_data = simplejson.dumps(game.to_dict()),
+            player_left = player_left,
+            player_right = player_right,
             player_left_data = simplejson.dumps(player_left.to_dict()),
             player_right_data = simplejson.dumps(player_right.to_dict()),
         ),
