@@ -48,9 +48,9 @@
             {{ match_form.collection.label_tag }}
             {{ match_form.collection }}
         </div>
-        {% if match_form.collection.errors %}
+        {% if match_form.match_identifier.errors %}
         <span class="help-inline">
-            {% for error in match_form.collection.errors %}
+            {% for error in match_form.match_identifier.errors %}
                 {{ error|escape }}
             {% endfor %}
         </span>
@@ -58,6 +58,17 @@
         <div class="control-group">
             {{ match_form.match_identifier.label_tag }}
             {{ match_form.match_identifier }}
+        </div>
+        {% if match_form.best_of.errors %}
+        <span class="help-inline">
+            {% for error in match_form.best_of.errors %}
+                {{ error|escape }}
+            {% endfor %}
+        </span>
+        {% endif %}
+        <div class="control-group">
+            {{ match_form.best_of.label_tag }}
+            {{ match_form.best_of }}
         </div>
         {% if game_form.game_number.errors %}
         <span class="help-inline">

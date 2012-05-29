@@ -261,6 +261,39 @@
                 </h2>
             </div>
         {% endif %}
+        {% if action.action_type == "base_created" %}
+            {% with acting_player=match.players|get:action.acting_side %}
+                {% if acting_player.race == "zerg" %}
+                    <img src="{{MEDIA_URL}}/sc2/icons/hatchery.gif"/>
+                {% endif %}
+                {% if acting_player.race == "protoss" %}
+                    <img src="{{MEDIA_URL}}/sc2/icons/nexus.gif"/>
+                {% endif %}
+                {% if acting_player.race == "terran" %}
+                    <img src="{{MEDIA_URL}}/sc2/icons/command_center.gif"/>
+                {% endif %}
+                <div class="info-container">
+                    <p class="time">
+                        <i class="icon-time"></i>
+                        {{action.started_at|clock}}
+                    </p>
+                    <h2>
+                        <span class="player-name">
+                            {{ acting_player.name }}
+                        </span>
+                        {% if action.location == "main" %} 
+                            spawned with a base
+                        {% endif %}
+                        {% if action.location == "natural" %} 
+                            took the natural base
+                        {% endif %}
+                        {% if action.location == "other" %} 
+                            took another base
+                        {% endif %}
+                    </h2>
+                </div>
+            {% endwith %}
+        {% endif %}
         {% if action.action_type == "unit_creation" %}
             <img src="{{MEDIA_URL}}/sc2/icons/{{ action.force|iconify }}.gif"/>
             <div class="info-container">
@@ -304,6 +337,12 @@
         {% endif %}
         {% if action.action_type == "engagement" %}
             <img class="map-marker" src="{{MEDIA_URL}}/img/target.png"
+                data-action-id="{{action.id}}"
+                style="top:{{action.position.y}}%; left:{{action.position.x}}%";
+            >
+        {% endif %}
+        {% if action.action_type == "base_created" %}
+            <img class="map-marker" src="{{MEDIA_URL}}/img/house.png"
                 data-action-id="{{action.id}}"
                 style="top:{{action.position.y}}%; left:{{action.position.x}}%";
             >

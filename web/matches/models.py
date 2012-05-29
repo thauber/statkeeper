@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import simplejson
 from django.template.defaultfilters import slugify
+from django.core.urlresolvers import reverse
 
 def enumstr(string): return string.replace("_","-")
 def enum(*strings):
@@ -13,7 +14,13 @@ def enum(*strings):
     return type('Enum', (), enums)
 
 Players = enum("left", "right")
-ActionTypes = enum("base_invaded", "harassment", "engagement", "unit_creation")
+ActionTypes = enum(
+    "base_invaded",
+    "harassment",
+    "engagement",
+    "unit_creation",
+    "base_created",
+)
 Races = enum("terran", "protoss", "zerg")
 TournamentStyle = enum("GSL",)
 
@@ -22,6 +29,7 @@ ActionInfo = {
     ActionTypes.harassment: {'symmetric':True, 'expandable':True},
     ActionTypes.engagement: {'symmetric':False, 'expandable':True},
     ActionTypes.unit_creation: {'symmetric':False, 'expandable':False},
+    ActionTypes.base_created: {'symmetric':False, 'expandable':False},
 }
 
 class Game(models.Model):
@@ -76,6 +84,7 @@ class Match(models.Model):
     collection = models.ForeignKey("Collection")
     players = models.ManyToManyField("Player", through="MatchPlayer")
     match_identifier = models.IntegerField(null=True)
+    best_of = models.IntegerField()
     slug = models.CharField(max_length=255)
 
     class Meta:
@@ -104,6 +113,14 @@ class Match(models.Model):
             collection = self.collection.name,
         )
         return data;
+    
+    @property
+    def url(self):
+        return reverse('match-detail', args=[
+            self.collection.tournament.slug,
+            self.collection.slug,
+            self.slug
+        ])
 
     @classmethod
     def create_slug(self, players):
@@ -178,6 +195,9 @@ class Action(models.Model):
                 if key != 'type':
                     data['force'] = value
                     break
+        if self.action_type == "base_created":
+            location_result = self.get_result('location')
+            data['location'] = location_result['location']
         win = self.get_result('win')
         if win:
             data['winning_side'] = win['winner']

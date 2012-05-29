@@ -148,7 +148,7 @@ SKGameView = Backbone.View.extend({
     finish: function(evt) {
         winningSide = $(evt.target).data('side')
         winner = BaseLeftPlayer;
-        if (winningSide = "right") {
+        if (winningSide == "right") {
             winner = BaseRightPlayer
         }
         this.game.set({"finished": true, "winner":winner.get("player_id")});
@@ -182,6 +182,7 @@ SKMapControlView = Backbone.View.extend({
     },
     render: function() {
         var actionViews = [];
+        var map = this.$("#map-container");
         var container = $(this.tmpl({
             mapURL: this.map.url,
             displayingControlPopup: this.controlPopup
@@ -193,11 +194,10 @@ SKMapControlView = Backbone.View.extend({
                 actionView = $("<img>");
                 actionView.addClass("action");
                 actionView.data('action-index', ""+i);
-
                 actionView.attr('src', SKMapControlView.getIconForAction(action));
                 actionView.css({
-                    left: action.get("position").x-10,
-                    top: action.get("position").y-10,
+                    left:(action.get("position").x/100*map.width()) - 10,
+                    top:(action.get("position").y/100*map.height()) - 10,
                     position: 'absolute',
                     width: 20,
                     height: 20,
@@ -247,6 +247,7 @@ SKMapControlView = Backbone.View.extend({
         this.render()
     },
     createActionPopup: function(action) {
+        var map = this.$("#map-container");
         var position = action.get("position");
         this.phaser = this.getActionPhaser(action);
         this.phaser.on("phaser:change", function(evt){
@@ -263,8 +264,8 @@ SKMapControlView = Backbone.View.extend({
         }));
         if (position) {
             container.css({
-                left: position.x+20,
-                top: position.y-20,
+                left:(action.get("position").x/100*map.width()) + 20,
+                top:(action.get("position").y/100*map.height()) - 20,
             });
         }
         var phaseListContainer = container.find(".phase-list-container");
@@ -332,6 +333,9 @@ SKMapControlView = Backbone.View.extend({
                 break;
             case SKAction.ActionMap.unit_creation:
                 return new SKUnitCreationPhaser(action);
+                break;
+            case SKAction.ActionMap.base_created:
+                return new SKBasePhaser(action);
                 break;
         }
         return null;

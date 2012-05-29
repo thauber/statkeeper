@@ -123,16 +123,16 @@
     border: solid 1px #999;
     margin: 5px 0px;
 }
-.action-unit_creation h2 {
+.action-base_created h2, .action-unit_creation h2 {
     font-size: 14px;
 }
-.action-unit_creation img {
+.action-base_created img, .action-unit_creation img {
     float: left;
     height: 35px;
     width: 35px;
     padding-right: 10px;
 }
-.action-unit_creation {
+.action-base_created, .action-unit_creation {
     padding:0px;
 }
 .actor-left {

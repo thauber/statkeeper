@@ -99,7 +99,8 @@ def create_match(request, tournament):
         match, created = models.Match.objects.get_or_create(
             collection = collection,
             slug = slug,
-            match_identifier = match_form.cleaned_data['match_identifier']
+            match_identifier = match_form.cleaned_data['match_identifier'],
+            best_of = match_form.cleaned_data['best_of']
         )
         if created:
             left_form.instance.match = right_form.instance.match = match
@@ -141,7 +142,7 @@ def swapsides_game(request, game_id):
 
     should_be_left.side = 'left';
     should_be_left.save();
-    game.action_set.all().delete();
+    game.actions.all().delete();
     return HttpResponseRedirect(reverse('stat-keeper', args=[game.id]))
 
 def create_next_game(request, game_id):
@@ -159,7 +160,7 @@ def change_game_map(request, game_id):
     map_id = request.POST.get("game_map")
     game = models.Game.objects.get(id=game_id)
     game.game_map_id = map_id
-    game.action_set.all().delete();
+    game.actions.all().delete();
     game.save()
     return HttpResponseRedirect(reverse('stat-keeper', args=[game.id]))
 

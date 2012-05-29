@@ -11,6 +11,7 @@ class MatchPlayerForm(forms.ModelForm):
 class MatchForm(forms.Form):
     collection = forms.CharField(max_length=63,)# widget=forms.HiddenInput)
     match_identifier = forms.IntegerField(label="Match Number")
+    best_of = forms.IntegerField()
 
 class GameForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):

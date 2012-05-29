@@ -152,13 +152,15 @@ SKAction.ActionMap = {
     baseInvaded: "base_invaded",
     harassment: "harassment",
     engagement: "engagement",
-    unit_creation: "unit_creation"
+    unit_creation: "unit_creation",
+    base_created: "base_created"
 }
 
 SKAction.Actions = [
     {name:"Engagement", action_type:SKAction.ActionMap.engagement, sym: true},
     {name: "Invaded Base", action_type:SKAction.ActionMap.baseInvaded, sym:false},
     {name: "Harassment", action_type:SKAction.ActionMap.harassment, sym:false},
+    {name: "Created Base", action_type:SKAction.ActionMap.base_created, sym:false},
     {name: "Created Unit", action_type:SKAction.ActionMap.unit_creation, sym:false, positionless: true}
 ];
 

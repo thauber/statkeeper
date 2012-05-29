@@ -26,19 +26,21 @@ _.extend(SKPhase.prototype, Backbone.Events, {
     },
     preparePhase:function(view) {
         view.delegate("[data-control='end']", 'click', _.bind(function(evt) {
-            this.trigger('phase:end', this, view);
+            var target = $(evt.target);
+            this.trigger('phase:end', this, view, target);
         },this));
             
         view.delegate("[data-control='change']", 'click', _.bind(function(evt) {
             var target = $(evt.target);
-            this.trigger('phase:change', this, target.data("change"));
+            this.trigger('phase:change', this, target.data("change"), target);
         },this));
     },
-    endPhase:function(view) {},    
+    endPhase:function(view, trigger) {},    
     html: function() {},
 });
 SKPhase.extend = Backbone.Model.extend;
 
+// SKEngagementPhaser Phases //
 SKForcesPhase = SKPhase.extend({
     initialize: function(action, player, header, armory) {
         this.player = player;
@@ -202,6 +204,63 @@ SKMacroPhase = SKPhase.extend({
     }
 });
 
+// SKBasePhaser //
+SKBaseLocationPhase = SKPhase.extend({
+    type: "location",
+    className: "SKBaseLocationPhase",
+    html: function(forceEditable) {
+        var container = $("<div></div>");
+        if (this.editable || forceEditable) {
+            container.addClass("button-group", "base-location-selector");
+            container.append(
+                $("<a class='btn' data-control='end' data-location='main'>Main</a>"),
+                $("<a class='btn' data-control='end' data-location='natural'>Natural</a>"),
+                $("<a class='btn' data-control='end' data-location='other'>Other</a>")
+            );
+        } else {
+            container.append("<p>This is a "+this.data.location+" base.</p>")
+        }
+        return container;
+    },
+    endPhase: function(view, target) {
+        var data = {'type': 'location'};
+        data.location = target.data("location");
+        return data;
+    }
+})
+SKBaseDestroyedPhase = SKPhase.extend({
+    html: function() {
+        var container = $("<div></div>")
+            .append("<p>This base was destroyed.</p>")
+        return container;
+    }
+})
+SKBaseRebuiltPhase = SKPhase.extend({
+    html: function() {
+        var container = $("<div></div>")
+            .append("<p>This base was rebuilt.</p>")
+        return container;
+    }
+})
+SKBaseOptionPhase = SKPhase.extend({
+    initialize: function(states) {
+        this.states = states;
+    },
+    html: function() {
+        var container = $("<div class='button-group'></div>").addClass("base-location-selector");
+        var destroyedButton;
+        if (this.states.destroyed) {
+            destroyedButton = $("<a class='btn' data-control='change' data-change='rebuilt'>Rebuilt</a>")
+        } else {
+            destroyedButton = $("<a class='btn' data-control='change' data-change='destroyed'>Destroyed</a>")
+        }
+
+        container.append(
+            destroyedButton
+        )
+        return container;
+    }
+})
 /*
  * Phasers
  */
@@ -219,8 +278,8 @@ _.extend(SKPhaser.prototype, Backbone.Events, {
         var phase, length=this.phases.length, i;
         for (i=0; i<length; i++) {
             phase = this.phases[i];
-            phase.on('phase:end', function(phase, view) {
-                this.endPhase(phase, view);
+            phase.on('phase:end', function(phase, view, trigger) {
+                this.endPhase(phase, view, trigger);
             }, this);
             phase.on('phase:change', this.changePhase, this);
         }
@@ -259,8 +318,8 @@ _.extend(SKPhaser.prototype, Backbone.Events, {
         this.action.addChange(change, GameTimer.time);
         this.trigger('phaser:change', this);
     },
-    endPhase: function(phase, view) {
-        var info = phase.endPhase(view);
+    endPhase: function(phase, view, trigger) {
+        var info = phase.endPhase(view, trigger);
         var index = this.getPhaseIndex(phase);
         if (this.action.get("results").length > index) {
             this.action.get("results")[index] = info;
@@ -423,6 +482,41 @@ SKHarassmentPhaser = SKEngagementPhaser.extend({
         ];
     }
 });
+SKBasePhaser = SKPhaser.extend({
+    makePhases: function() {
+        var destroyed = "destroyed";
+        var rebuilt = "rebuilt";
+        
+        this.phases = [
+            new SKBaseLocationPhase(),
+        ];
+
+        var i, length=this.action.get("changes").length, change;
+        var states = {};
+        for (i=0; i < length; i++) {
+            change = this.action.get("changes")[i];
+            switch (change) {
+            case "destroyed":
+                states.destroyed = false;
+                this.phases.push(
+                    new SKBaseDestroyedPhase()
+                );
+                break;
+            case "rebuilt":
+                states.destroyed = true;
+                this.phases.push(
+                    new SKBaseRebuiltPhase()
+                );
+                break;
+            }
+        }
+        /*
+        this.phases.push(
+            new SKBaseOptionPhase(states)
+        );
+        */
+    }
+})
 
 SKActionView = Backbone.View.extend({
 /*
