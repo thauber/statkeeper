@@ -57,28 +57,96 @@ class Game(models.Model):
             id              = self.id,
         )
 
-class Tournament(models.Model):
-    name = models.CharField(max_length=63, unique=True)
-    slug = models.CharField(max_length=63)
-    style = models.CharField(
-        max_length=63,
-        choices=TournamentStyle._choices
-    )
-    def save(self, *args, **kwargs):
-        self.slug = slugify(self.name)
-        return super(Tournament, self).save(*args, **kwargs)
-
-class Collection(models.Model):
-    tournament = models.ForeignKey("Tournament")
+class League(models.Model):
     name = models.CharField(max_length=63)
     slug = models.CharField(max_length=63)
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
+        return super(League, self).save(*args, **kwargs)
+    
+class Season(models.Model):
+    name = models.CharField(max_length=63)
+    slug = models.CharField(max_length=63)
+    league = models.ForeignKey(League)
+    start_date = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        return super(Season, self).save(*args, **kwargs)
+
+class Tournament(models.Model):
+    name = models.CharField(max_length=63, unique=True)
+    slug = models.CharField(max_length=63)
+    season = models.ForeignKey(Season)
+    style = models.CharField(
+        max_length=63,
+        choices=TournamentStyle._choices
+    )
+    start_date = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        return super(Tournament, self).save(*args, **kwargs)
+
+    @classmethod
+    def get_tournament(klass, league_slug, season_slug, tournament_slug):
+        return Tournament.objects.get(slug=tournament_slug,
+                                        season__slug=season_slug,
+                                        season__league__slug=league_slug)
+
+    @property
+    def full_name(self):
+        return "%s %s %s" % (self.season.league.name,self.season.name,self.name)
+
+
+
+class Collection(models.Model):
+    tournament = models.ForeignKey("Tournament")
+    name = models.CharField(max_length=63)
+    slug = models.CharField(max_length=63)
+    start_date = models.DateTimeField()
+    player_pool = models.IntegerField()
+    group_identifier = models.IntegerField()
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
         return super(Collection, self).save(*args, **kwargs)
+
+    def __repr__(self):
+        return self.name
 
     class Meta:
         unique_together = (("tournament", "slug"),)
+
+    @property
+    def players(self):
+        #TODO finalize matches
+        player_data = {}
+        for match in self.match_set.all():
+            match_data = match.to_dict()
+            winner = None
+            loser = None
+            if match_data['wins']['left'] > match_data['wins']['right']:
+                winner = match_data['players']['left']
+                loser = match_data['players']['right']
+            elif match_data['wins']['left'] < match_data['wins']['right']:
+                winner = match_data['players']['right']
+                loser =  match_data['players']['left']
+            if winner:
+                if winner not in player_data:
+                    player_data[winner]=dict(wins=0, losses=0)
+                player_data[winner]['wins'] += 1
+            if loser:
+                if loser not in player_data:
+                    player_data[loser]=dict(wins=0, losses=0)
+                player_data[loser]['losses'] += 1
+        return [dict(('player', p)+d.items()) for p,d in player_data.items()]
+
+class BracketPath(models.Model):
+    prev_match = models.ForeignKey("Match", related_name="prev_paths")
+    qualifier = models.TextField(max_length=63)
+    next_match = models.ForeignKey("Match", related_name="next_paths")
 
 class Match(models.Model):
     collection = models.ForeignKey("Collection")
@@ -86,37 +154,83 @@ class Match(models.Model):
     match_identifier = models.IntegerField(null=True)
     best_of = models.IntegerField()
     slug = models.CharField(max_length=255)
+    start_date = models.DateTimeField()
+
+    def __repr__(self):
+        return "%s: Match %s" % (self.collection.name, self.slug)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = self.match_identifier
+        return super(Match, self).save(*args, **kwargs)
 
     class Meta:
         unique_together = (('collection', 'slug'),)
 
-    def to_dict(self):
-        left_player = self.matchplayer_set.filter(side="left")[0]
-        right_player = self.matchplayer_set.filter(side="right")[0]
+    @property
+    def winner(self):
+        left = self.wins['left']
+        right = self.wins['right']
+        if left > right and left > self.best_of/2:
+            return self.matchplayer_set.get(side="left")
+        if right > left and right > self.best_of/2:
+            return self.matchplayer_set.get(side="left")
+        return None
+        
+    def winning_side(self, winner_id):
+        return self.matchplayer_set.get(player=winner_id).side
+
+    @property
+    def wins(self):
+        left_player = self.player_data.get('left',{})
+        right_player = self.player_data.get('right',{})
         left_wins = 0
         right_wins = 0
+        if hasattr(self, '_wins'):
+            return self._wins
         for game in self.games.all():
-            if game.winner_id == left_player.player.id:
+            if game.winner is None:
+                continue
+            if game.winner_id == left_player.get('player_id'):
                 left_wins += 1
-            if game.winner_id == right_player.player.id:
+            if game.winner_id == right_player.get('player_id'):
                 right_wins += 1
+        self._wins = dict(left=left_wins, right=right_wins)
+        return self._wins
+
+    @property
+    def player_data(self):
+        if hasattr(self, '_player_data'):
+            return self._player_data
+        left_player = None
+        left_player_list = self.matchplayer_set.filter(side="left")
+        if left_player_list:
+            left_player = left_player_list[0]
+        right_player = None
+        right_player_list = self.matchplayer_set.filter(side="right")
+        if right_player_list:
+            right_player = right_player_list[0]
+        self._player_data = dict(
+            left = left_player and left_player.to_dict(),
+            right = right_player and right_player.to_dict(),
+        )
+        return self._player_data
+
+    def to_dict(self):
         data = dict (
-            wins = dict (
-                left = left_wins,
-                right = right_wins,
-            ),
-            players = dict (
-                left = left_player.to_dict(),
-                right = right_player.to_dict(),
-            ),
+            wins = self.wins,
+            players = self.player_data,
             tournament = self.collection.tournament.name,
             collection = self.collection.name,
+            best_of = self.best_of,
         )
         return data;
     
     @property
     def url(self):
         return reverse('match-detail', args=[
+            self.collection.tournament.season.league.slug,
+            self.collection.tournament.season.slug,
             self.collection.tournament.slug,
             self.collection.slug,
             self.slug
@@ -225,6 +339,12 @@ class Player(models.Model):
 
     def __unicode__(self):
         return self.name
+
+    def to_dict(self):
+        return dict(
+            name=self.name,
+            id=self.id
+        )
 
 class Map(models.Model):
     map_file = models.CharField(max_length=255)
