@@ -321,11 +321,20 @@
     },
     {
         "pk": 1,
-        "model": "matches.Tournament",
+        "model": "matches.League",
         "fields": {
-            "name": "GSL Season 2 Code S",
-            "style": "GSL",
-            "slug": "gsl-season-2-code-s"
+            "name": "GSL",
+            "slug": "gsl"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "matches.Season",
+        "fields": {
+            "name": "Season 2",
+            "slug": "season-2",
+            "start_date": "2012-03-12 01:10:00", 
+            "league": 1
         }
     }
 ]

@@ -13,7 +13,64 @@ from django.template.response import TemplateResponse
 
 from matches.forms import GameForm, MatchPlayerForm, MapForm, MatchForm
 
-def match_detail(request, tournament_slug, collection_slug, match_slug):
+def tournament_detail(request, league_slug, season_slug, tournament_slug):
+    tournament = models.Tournament.get_tournament(league_slug, season_slug,
+                                                    tournament_slug)
+    matches = models.Match.objects.filter(collection__tournament=tournament)
+    players = models.Player.objects.all()
+    maps = models.Map.objects.all()
+    data = dict(
+        matches = simplejson.dumps(dict((m.id,m.to_dict()) for m in matches)),
+        players = simplejson.dumps([player.to_dict() for player in players]),
+        maps = simplejson.dumps([map.to_dict() for map in maps]),
+    )
+    if tournament.name == "Code S":
+        data.update(dict(
+            ro32_collections = tournament.collection_set.filter(
+                group_identifier=32),
+            ro16_collections = tournament.collection_set.filter(
+                group_identifier=16),
+            playoffs = [
+                tournament.collection_set.get(group_identifier=8),
+                tournament.collection_set.get(group_identifier=4),
+                tournament.collection_set.get(group_identifier=2),
+            ],
+            tournament = tournament
+        ))
+        return TemplateResponse(
+            request,
+            'matches/tournaments/codes.html',
+            data
+        )
+        return 
+    if (tournament.name == "Code A"):
+        data.update(dict(
+            ro48_collections = tournament.collection_set.filter(
+                group_identifier=48),
+            ro32_collections = tournament.collection_set.filter(
+                group_identifier=32),
+            ro24_collections = tournament.collection_set.filter(
+                group_identifier=24),
+        ));
+        return TemplateResponse(
+            request,
+            'matches/tournaments/codea.html',
+            data
+        )
+    if (tournament.name == "Up and Downs"):
+        data.update(dict(
+            groups = tournament.collection_set.all()
+        ))
+        return TemplateResponse(
+            request,
+            'matches/tournaments/upanddowns.html',
+            data
+        )
+    
+
+
+def match_detail(request, league_slug, season_slug, tournament_slug,
+                collection_slug, match_slug):
     tournament = models.Tournament.objects.get(slug = tournament_slug)
     collection = models.Collection.objects.get(
         slug = collection_slug,
@@ -52,10 +109,7 @@ def match_detail(request, tournament_slug, collection_slug, match_slug):
     for game in games:
         game_dict = game.to_dict()
         game_dict['actions'] = [action.to_dict() for action in game.actions.all()]
-        if game.winner_id == match_dict['players']['left']['player_id']:
-            game_dict['winning_side'] = "left"
-        elif game.winner_id == match_dict['players']['right']['player_id']:
-            game_dict['winning_side'] = "right"
+        game_dict['winning_side'] = match.winning_side(game.winner_id)
         game_dicts.append(game_dict)
 
     return TemplateResponse(

@@ -1,0 +1,64 @@
+{% load utils %}
+
+<div class="collection span3">
+    <div class="scoreboard">
+        <a class="matches-toggle" data-control="matches-toggle">
+            <i class="icon-th-list icon-white"></i>
+        </a>
+        <h3> {{ collection.name }} </h3>
+{% for participant in collection.players|fill:collection.player_pool %}
+    {% if participant %}
+        <div class="player {% if forloop.counter0 < 2 %} winner {% endif %}"
+             data-player="{{participant.player.name}}">
+            <p class="name">{{participant.player.name}}</p>
+            <p class="score">{{participant.won}}-{{participant.lost}}</p>
+        </div>
+    {% else %}
+        <div class="player empty">
+            <p class="name">TBD</p>
+            <p class="score">0-0</p>
+        </div>
+    {% endif %}
+{% endfor %}
+    </div>
+    <div class="matchboard">
+        <a class="matches-toggle" data-control="matches-toggle">
+            <i class="icon-user icon-white"></i>
+        </a>
+        <h3> {{ collection.name }} </h3>
+{% for match in collection.match_set.all %}
+    {% spaceless %}
+    <div class="match-inline" data-match-url="{{match.url}}" data-match-id="{{match.id}}">
+    <div class="btn-group editor-controls">
+        <a class="btn quick-add"><i class="icon-time"></i></a>
+        <a class="btn"><i class="icon-pencil"></i></a>
+    </div>
+    {% for player in match.matchplayer_set.all|fill:2 %}
+        {% if player %}
+        <div class="player {% if player == match.winner %} winner {% endif %}"
+             data-player="{{player.player.name}}">
+            {% if forloop.counter0 %}
+                <p class="score">{{match.wins|get:player.side}}</p>
+                <p class="name right">{{player.player.name}}</p>
+            {% else %}
+                <p class="name">{{player.player.name}}</p>
+                <p class="score left">{{match.wins|get:player.side}}</p>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="player empty">
+            {% if forloop.counter0 %}
+                <p class="score">-</p>
+                <p class="name right">TBD</p>
+            {% else %}
+                <p class="name left">TBD</p>
+                <p class="score">-</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% endfor %}
+    </div>
+    {% endspaceless %}
+{% endfor %}
+    </div>
+</div>

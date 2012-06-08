@@ -1,0 +1,194 @@
+
+{% extends "base.html" %}
+
+{% load utils %}
+
+{% block extraHead %}
+    <link rel="stylesheet" href="{{MEDIA_URL}}css/bracket.css"/>
+    <script>
+    window.SKMaps = {{maps|safe}}
+    window.SKPlayers = {{players|safe}}
+    window.SKMatches = {{matches|safe}}
+    function whichTransitionEvent(){
+        var t;
+        var el = document.createElement('fakeelement');
+        var transitions = {
+          'transition':'transitionEnd',
+          'OTransition':'oTransitionEnd',
+          'MSTransition':'msTransitionEnd',
+          'MozTransition':'transitionend',
+          'WebkitTransition':'webkitTransitionEnd'
+        }
+
+        for(t in transitions){
+            if( el.style[t] !== undefined ){
+                return transitions[t];
+            }
+        }
+    }
+    $(function() {
+        var enabled = true;
+        $('[data-control="matches-toggle"]').click(function(evt) {
+            var target = $(evt.target);
+            var container = target.closest(".collection");
+            container.children().toggle();
+/*            if (enabled) {
+                enabled = false;
+                var target = $(evt.target);
+                var container = target.closest(".collection");
+                evt.preventDefault();
+                var flat = container.children(".flat");
+                var flipped = container.children(".flipped");
+                var transitionEnd = whichTransitionEvent();
+                flat.get(0).addEventListener(transitionEnd, function() {
+                    flat.hide()
+                    flipped.show()
+                    flipped.toggleClass("flat");
+                    flipped.toggleClass("flipped");
+                    enabled = true;
+                }, false);
+                flat.toggleClass("flipped");
+                flat.toggleClass("flat");
+            } */
+        })
+        $('[data-match-url]').click(function(evt) {
+            var target = $(evt.target);
+            target = target.closest("[data-match-url]");
+            var url = target.attr("data-match-url");
+            window.location = url;
+        });
+
+        $(".match").add(".match-inline").hover(function(evt) {
+                var target = $(evt.target).closest('.match, .match-inline');
+                target.find(".editor-controls").show()
+            },
+            function (evt) {
+                var target = $(evt.target).closest('.match, .match-inline');
+                target.find(".editor-controls").hide()
+            }
+        );
+        $(".match").add(".match-inline")
+        .delegate(".quick-add", "click", function(evt) {
+            evt.preventDefault();
+            var target = $(evt.target).closest(".match, .match-inline");
+            var tmpl = ESB.Template.make("QuickAddView");
+            var match = SKMatches[target.data("match-id")]
+            console.log(match);
+            $("body").append(tmpl({
+                match: match,
+                players: SKPlayers,
+                maps: SKMaps
+            }));
+            $("QuickAddModal").modal().show();
+        });
+    });
+    </script>
+{% endblock %}
+
+{% block header %}
+  <h1>{{tournament.full_name}}</h1>
+{% endblock %}
+{% block content %}
+<div class="row">
+    <h2 class="span12">Round of 32</h2>
+{% for collection in ro32_collections %}
+    {% include "matches/tournaments/dual_collection.html" %}
+{% endfor %}
+</div>
+<div class="row">
+    <h2 class="span12">Round of 16</h2>
+{% for collection in ro16_collections %}
+    {% include "matches/tournaments/dual_collection.html" %}
+{% endfor %}
+</div>
+<div class="row bracket">
+    <h2 class="span12">Playoffs</h2>
+{% for collection in playoffs %}
+    <div class="collection span4">
+    {% with level=forloop.counter %}
+    {% for match in collection.match_set.all %}
+        <div class="match bracket-level-{{level}}" data-match-url="{{match.url}}" data-match-id="{{match.id}}"> 
+        {% for side,player in match.player_data|for_sides:"left,right" %}
+            {% if player %}
+            <div class="player
+                {% if match.winner_id == match.player_data|get:side|get:"id" %}
+                    winner 
+                {% endif %}"
+                 data-player="{{match.player_data|get:side|get:'name'}}">
+                <p class="name">{{player.name}}</p>
+                <p class="score">match.wins|get:side</p>
+            </div>
+            {% else %}
+            <div class="player empty">
+                <p class="name">TBD</p>
+                <p class="score">-</p>
+            </div>
+            {% endif %}
+        {% endfor %}
+        </div>
+    {% endfor %}
+    {% endwith %}
+    </div>
+
+<script type="text/template" id="QuickAddView">
+    <div class="modal map-selector-modal" id="QuickAddModal">
+        <div class="modal-header">
+            <button class="close" data-dismiss="modal">&times;</button>
+            <h3>Choose the correct map for this game</h3>
+        </div>
+        <div class="modal-body">
+            <form id="change-map-form" action="{% url game-change-map game.id %}" method=post>
+                <select class="left-player" name='left-player'>
+            <% 
+            var i, length=players.length, player;
+            for (i=0; i < length; i++) {
+                player = players[i];
+            %>
+                    <option value="<%=player.id%>"><%=player.name%></option>
+            <% } %>
+                </select>
+                <select class="right-player" name='right-player'>
+            <% 
+            length=players.length;
+            for (i=0; i < length; i++) {
+                player = players[i];
+            %>
+                    <option value="<%=player.id%>"><%=player.name%></option>
+            <% } %>
+                </select>
+            <% 
+            var game={};
+            for (i=0; i < match.best_of; i++) {
+            %>
+                <div class="game-edit-row">
+                    <input type="radio" name="game_<%=i%>-winning_side" value="left"
+                <% if (game.winning_side == 'left') { %>
+                    selected
+                <% } %>
+                    </input>
+                    <select name="game_<%=i%>-map">
+                <% 
+                var j, maps_length=maps.length, map;
+                for (j=0; j < maps_length; j++) {
+                    map = maps[i];
+                %>
+                    <option value="<%=map.id%>"><%=map.name%></option>
+                <% } %>
+                    </select>
+                    <input type="radio" name="game_<%=i%>-winning_side" value="right"
+                <% if (game.winning_side == 'right') { %>
+                    selected
+                <% } %>
+                    </input>
+                </div>
+            <% } %>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <a href="#" data-dismiss="modal" class="btn">Cancel</a>
+            <a href="#" class="btn btn-primary form-submit" data-form-submit="quick-add-form">
+        </div>
+    </div>
+</script>
+{% endfor %}
+{% endblock %}

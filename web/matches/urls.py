@@ -4,8 +4,11 @@ from views import *
 urlpatterns = patterns('',
     # url(r'^$', 'web.views.home', name='home'),
 
-    url(r'detail/([A-Za-z0-9-_]+)/([A-Za-z0-9-_]+)/([A-Za-z-0-9_]+)/?$', match_detail,
-        name="match-detail"),
+    url(r'detail/([A-Za-z0-9-_]+)/([A-Za-z0-9-_]+)/([A-Za-z0-9-_]+)/([A-Za-z0-9-_]+)/([A-Za-z-0-9_]+)/?$',
+        match_detail, name="match-detail"),
+    url(r'detail/([A-Za-z0-9-_]+)/([A-Za-z0-9-_]+)/([A-Za-z-0-9_]+)/?$',
+        tournament_detail,
+        name="tournament-detail"),
     url(r'create/?$', create_select_tournament, name="create-match"),
     url(r'create/(\d+)/?$', create_match, name="create-match"),
     url(r'swapsides/(\d+)?$', swapsides_game, name="game-swap-sides"),
