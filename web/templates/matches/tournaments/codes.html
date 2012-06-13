@@ -70,16 +70,23 @@
         $(".match").add(".match-inline")
         .delegate(".quick-add", "click", function(evt) {
             evt.preventDefault();
+            ESB.Util.stopPropagation(evt);
             var target = $(evt.target).closest(".match, .match-inline");
             var tmpl = ESB.Template.make("QuickAddView");
             var match = SKMatches[target.data("match-id")]
-            console.log(match);
             $("body").append(tmpl({
                 match: match,
                 players: SKPlayers,
                 maps: SKMaps
             }));
             $("QuickAddModal").modal().show();
+        });
+        $('body').delegate('.form-submit', 'click', function(evt) {
+            console.log("WHAT THE FUCK?")
+            var target = $(evt.target);
+            var formID = target.attr("data-form-submit");
+            var form = $("#"+formID)
+            form.submit();
         });
     });
     </script>
@@ -89,34 +96,45 @@
   <h1>{{tournament.full_name}}</h1>
 {% endblock %}
 {% block content %}
-<div class="row">
-    <h2 class="span12">Round of 32</h2>
-{% for collection in ro32_collections %}
-    {% include "matches/tournaments/dual_collection.html" %}
+    <h2>Round of 32</h2>
+{% for row in ro32_collections|partition:4 %}
+    <div class="row">
+    {% for collection in row %}
+        {% include "matches/tournaments/dual_collection.html" %}
+    {% endfor %}
+    </div>
 {% endfor %}
-</div>
-<div class="row">
-    <h2 class="span12">Round of 16</h2>
-{% for collection in ro16_collections %}
-    {% include "matches/tournaments/dual_collection.html" %}
+    <h2>Round of 16</h2>
+{% for row in ro16_collections|partition:4 %}
+    <div class="row">
+    {% for collection in row %}
+        {% include "matches/tournaments/dual_collection.html" %}
+    {% endfor %}
+    </div>
 {% endfor %}
-</div>
 <div class="row bracket">
     <h2 class="span12">Playoffs</h2>
 {% for collection in playoffs %}
     <div class="collection span4">
     {% with level=forloop.counter %}
-    {% for match in collection.match_set.all %}
+        {% for match in collection.match_set.all %}
         <div class="match bracket-level-{{level}}" data-match-url="{{match.url}}" data-match-id="{{match.id}}"> 
+            <div class="btn-group editor-controls">
+                <a class="btn quick-add"><i class="icon-time"></i></a>
+                <a class="btn"><i class="icon-pencil"></i></a>
+            </div>
         {% for side,player in match.player_data|for_sides:"left,right" %}
             {% if player %}
             <div class="player
-                {% if match.winner_id == match.player_data|get:side|get:"id" %}
+                {{side}}
+                {% if match.winner == player %}
                     winner 
+                {% else %}
+                    loser
                 {% endif %}"
-                 data-player="{{match.player_data|get:side|get:'name'}}">
-                <p class="name">{{player.name}}</p>
-                <p class="score">match.wins|get:side</p>
+                 data-player="{{player.player.name}}">
+                <p class="score">{{match.wins|get:side}}</p>
+                <p class="name">{{player.player.name}}</p>
             </div>
             {% else %}
             <div class="player empty">
@@ -134,28 +152,49 @@
     <div class="modal map-selector-modal" id="QuickAddModal">
         <div class="modal-header">
             <button class="close" data-dismiss="modal">&times;</button>
-            <h3>Choose the correct map for this game</h3>
+            <h3>Quick Add</h3>
         </div>
         <div class="modal-body">
-            <form id="change-map-form" action="{% url game-change-map game.id %}" method=post>
-                <select class="left-player" name='left-player'>
+            <form id="quick-add-form" action="{% url quick-add %}" method=post>
+                {% csrf_token %}
+                <input type="hidden" name="match_id" value="<%=match.id%>"/>
+                <div class="well">
+                    <select class="left-player-select player-select" name='left-player'>
             <% 
-            var i, length=players.length, player;
+            var i, length=players.length+1, player;
             for (i=0; i < length; i++) {
-                player = players[i];
+                if (i==0) {
             %>
-                    <option value="<%=player.id%>"><%=player.name%></option>
-            <% } %>
-                </select>
-                <select class="right-player" name='right-player'>
+                        <option value="">--None--</option>
             <% 
-            length=players.length;
-            for (i=0; i < length; i++) {
-                player = players[i];
+                } else {
+                    player = players[i-1];
             %>
-                    <option value="<%=player.id%>"><%=player.name%></option>
-            <% } %>
-                </select>
+                        <option value="<%=player.id%>"><%=player.name%></option>
+            <% 
+                }
+            } 
+            %>
+                    </select>
+                    <p class="verse">vs</p>
+                    <select class="right-player-select player-select" name='right-player'>
+            <% 
+            length=players.length+1;
+            for (i=0; i < length; i++) {
+                if (i==0) {
+            %>
+                        <option value="">--None--</option>
+            <% 
+                } else {
+                    player = players[i-1];
+            %>
+                        <option value="<%=player.id%>"><%=player.name%></option>
+            <% 
+                }
+            } 
+            %>
+                    </select>
+                </div>
             <% 
             var game={};
             for (i=0; i < match.best_of; i++) {
@@ -168,12 +207,20 @@
                     </input>
                     <select name="game_<%=i%>-map">
                 <% 
-                var j, maps_length=maps.length, map;
+                var j, maps_length=maps.length+1, map;
                 for (j=0; j < maps_length; j++) {
-                    map = maps[i];
+                    if (j==0) {
+                %>
+                        <option value="">--None--</option>
+                <% 
+                    } else {
+                        map = maps[j-1];
                 %>
                     <option value="<%=map.id%>"><%=map.name%></option>
-                <% } %>
+                <% 
+                    }
+                }
+                %>
                     </select>
                     <input type="radio" name="game_<%=i%>-winning_side" value="right"
                 <% if (game.winning_side == 'right') { %>
@@ -186,7 +233,7 @@
         </div>
         <div class="modal-footer">
             <a href="#" data-dismiss="modal" class="btn">Cancel</a>
-            <a href="#" class="btn btn-primary form-submit" data-form-submit="quick-add-form">
+            <a href="#" class="btn btn-primary form-submit" data-form-submit="quick-add-form">Quick Add</a>
         </div>
     </div>
 </script>

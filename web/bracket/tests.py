@@ -8,6 +8,7 @@ Replace this with more appropriate tests for your application.
 from matches.models import *
 from django.test import TestCase
 from bracket.tools import *
+from bracket.elimination_bracket import *
 import datetime
 
 today = datetime.date.today()
@@ -319,3 +320,64 @@ class MatchCreationTest(TestCase):
             len(t.collection_set.all()), 12)
         self.assertEqual(
             len(Match.objects.filter(collection__tournament=t)), 52)
+    
+    def test_double_elim(self):
+        bracket_with_names(
+            ['One','Two','Three','Four','Five','Six','Seven','Eight'],
+            1,
+            today)
+        l = League.objects.get(name = "Developer Showdown")
+        s = Season.objects.get(league=l, name="Season 1")
+        wb = Tournament.objects.get(season=s, name="Winner's Bracket")
+        lb = Tournament.objects.get(season=s, name="Loser's Bracket")
+
+        self.assertEqual(
+            len(wb.collection_set.all()), 3)
+        self.assertEqual(
+            len(Match.objects.filter(collection__tournament=wb)), 7)
+        self.assertEqual(
+            len(lb.collection_set.all()), 4)
+        self.assertEqual(
+            len(Match.objects.filter(collection__tournament=lb)), 6)
+
+    def test_double_elim_with_byes(self):
+        bracket_with_names(
+            ['One','Two','Three','Four','Five','Six','Seven'],
+            1,
+            today)
+        l = League.objects.get(name = "Developer Showdown")
+        s = Season.objects.get(league=l, name="Season 1")
+        wb = Tournament.objects.get(season=s, name="Winner's Bracket")
+        lb = Tournament.objects.get(season=s, name="Loser's Bracket")
+
+        self.assertEqual(
+            len(wb.collection_set.all()), 3)
+        self.assertEqual(
+            len(Match.objects.filter(collection__tournament=wb)), 6)
+        self.assertEqual(
+            len(lb.collection_set.all()), 4)
+        self.assertEqual(
+            len(Match.objects.filter(collection__tournament=lb)), 5)
+
+    def test_double_elim_with_complicated_byes(self):
+        bracket_with_names(
+            ['One','Two','Three','Four','Five','Six'],
+            1,
+            today)
+        l = League.objects.get(name = "Developer Showdown")
+        s = Season.objects.get(league=l, name="Season 1")
+        wb = Tournament.objects.get(season=s, name="Winner's Bracket")
+        lb = Tournament.objects.get(season=s, name="Loser's Bracket")
+
+        self.assertEqual(
+            len(wb.collection_set.all()), 3)
+        self.assertEqual(
+            len(Match.objects.filter(collection__tournament=wb)), 5)
+        self.assertEqual(
+            len(lb.collection_set.all()), 4)
+        empty_collection = lb.collection_set.get(name="Round 1")
+        self.assertEqual(
+            len(empty_collection.match_set.all()), 0)
+        self.assertEqual(
+            len(Match.objects.filter(collection__tournament=lb)), 4)
+

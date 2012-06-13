@@ -13,7 +13,46 @@ from django.template.response import TemplateResponse
 
 from matches.forms import GameForm, MatchPlayerForm, MapForm, MatchForm
 
-def tournament_detail(request, league_slug, season_slug, tournament_slug):
+def quick_add(request):
+    import pprint; pprint.pprint(request.POST)
+    match = models.Match.objects.get(id=request.POST.get("match_id"))
+    for side in ["left","right"]:
+        player = request.POST.get("%s-player" % (side,))
+        if player:
+            match_player = models.MatchPlayer.objects.get_or_create(
+                match = match,
+                side = side,
+                defaults = {
+                    'player_id':int(player),
+                    'race':'protoss',
+                }
+            )[0]
+            match_player.race = "protoss"
+            match_player.player_id = int(player)
+            match_player.save()
+        else:
+            match.matchplayer_set.filter(side=side).delete()
+
+    for i in xrange(match.best_of):
+        game_winning_side = request.POST.get("game_%d-winning_side" % (i,))
+        game_winner = None
+        if game_winning_side:
+            game_winner = match.matchplayer_set.get(side=game_winning_side)
+            game_winner = game_winner.player
+        game_map = request.POST.get("game_%d-map" % (i,))
+        if game_map:
+            game = match.games.get_or_create(game_number=i, defaults = {
+                'game_map_id': game_map
+            })[0]
+            if game_winner:
+                game.winner = game_winner
+            if game_map:
+                game.game_map_id = game_map
+            game.save()
+
+    return HttpResponseRedirect(match.tournament_url)
+
+def tournament_detail(request, league_slug, season_slug, tournament_slug, extra_data=None):
     tournament = models.Tournament.get_tournament(league_slug, season_slug,
                                                     tournament_slug)
     matches = models.Match.objects.filter(collection__tournament=tournament)
@@ -24,6 +63,7 @@ def tournament_detail(request, league_slug, season_slug, tournament_slug):
         players = simplejson.dumps([player.to_dict() for player in players]),
         maps = simplejson.dumps([map.to_dict() for map in maps]),
     )
+    data.update(extra_data or {})
     if tournament.name == "Code S":
         data.update(dict(
             ro32_collections = tournament.collection_set.filter(

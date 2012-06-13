@@ -5,6 +5,35 @@
 .player .score {
     display: inline-block;
 }
+.scoreboard .player .score, .match .player .score {
+    float: right;
+}
+.match .player {
+    border-bottom: none;
+}
+.match .empty {
+    border-bottom: solid 1px #444;
+}
+.match .left.loser {
+    border-bottom: solid 1px #444;
+}
+.match .right.loser {
+    border-top: solid 1px #444;
+}
+.match .winner {
+    font-weight: bold;
+}
+.match .loser {
+    border-radius: 10px;
+    background: #212121; /* Old browsers */
+    background: -moz-linear-gradient(left,  #111 0%, #222 14%, #222 86%, #111 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, right top, color-stop(0%,#111), color-stop(14%,#222), color-stop(86%,#222), color-stop(100%,#111)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(left,  #111 0%,#222 14%,#222 86%,#111 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(left,  #111 0%,#222 14%,#222 86%,#111 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(left,  #111 0%,#222 14%,#222 86%,#111 100%); /* IE10+ */
+    background: linear-gradient(left,  #111 0%,#222 14%,#222 86%,#111 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#111', endColorstr='#111',GradientType=1 ); /* IE6-9 */
+}
 .player p {
     margin: 2px 0px;
 }
@@ -129,4 +158,28 @@
     left: 50%;
     margin-left: -26px;
     display: none;
+}
+#QuickAddModal .verse{
+    display: inline-block;
+    padding: 0px 13px;
+    margin: 0px;
+}
+#QuickAddModal .player-select {
+    margin: 0px
+}
+#QuickAddModal .left-player-select {
+    background: #BBF
+}
+#QuickAddModal .right-player-select {
+    background: #FBB
+}
+#QuickAddModal input[type="radio"] {
+    -webkit-appearance: checkbox;
+    -moz-appearance: checkbox;
+    -ms-appearance: checkbox;     /* not currently supported */
+    -o-appearance: checkbox;      /* not currently supported */
+    margin: 0px 25px;
+}
+#QuickAddModal .game-edit-row {
+    text-align: center;
 }

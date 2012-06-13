@@ -6,17 +6,19 @@
             <i class="icon-th-list icon-white"></i>
         </a>
         <h3> {{ collection.name }} </h3>
-{% for participant in collection.players|fill:collection.player_pool %}
+{% for participant in collection.players|fill:collection.player_pool%}
     {% if participant %}
         <div class="player {% if forloop.counter0 < 2 %} winner {% endif %}"
-             data-player="{{participant.player.name}}">
-            <p class="name">{{participant.player.name}}</p>
-            <p class="score">{{participant.won}}-{{participant.lost}}</p>
+             data-player="{{participant.player.player.name}}">
+            <p class="score">{{participant.wins}}-{{participant.losses}}</p>
+            <p class="name">{{participant.player.player.name}}</p>
+            <div class="clear"></div>
         </div>
     {% else %}
         <div class="player empty">
-            <p class="name">TBD</p>
             <p class="score">0-0</p>
+            <p class="name">TBD</p>
+            <div class="clear"></div>
         </div>
     {% endif %}
 {% endfor %}

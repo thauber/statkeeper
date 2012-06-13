@@ -8,6 +8,6 @@ class Command(BaseCommand):
 
     def handle(self, tournament_name, *args, **options):
         mod = importlib.import_module(
-            "%s.%s" % (bracket.tournaments.__name__, "gsl_season_2"))
+            "%s.%s" % (bracket.tournaments.__name__, tournament_name))
         mod.create_season()
         

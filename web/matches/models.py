@@ -99,8 +99,6 @@ class Tournament(models.Model):
     def full_name(self):
         return "%s %s %s" % (self.season.league.name,self.season.name,self.name)
 
-
-
 class Collection(models.Model):
     tournament = models.ForeignKey("Tournament")
     name = models.CharField(max_length=63)
@@ -124,15 +122,16 @@ class Collection(models.Model):
         #TODO finalize matches
         player_data = {}
         for match in self.match_set.all():
-            match_data = match.to_dict()
+            players = match.player_data
+            wins = match.wins
             winner = None
             loser = None
-            if match_data['wins']['left'] > match_data['wins']['right']:
-                winner = match_data['players']['left']
-                loser = match_data['players']['right']
-            elif match_data['wins']['left'] < match_data['wins']['right']:
-                winner = match_data['players']['right']
-                loser =  match_data['players']['left']
+            if wins['left'] > wins['right']:
+                winner = players['left']
+                loser = players['right']
+            elif wins['left'] < wins['right']:
+                winner = players['right']
+                loser =  players['left']
             if winner:
                 if winner not in player_data:
                     player_data[winner]=dict(wins=0, losses=0)
@@ -141,12 +140,13 @@ class Collection(models.Model):
                 if loser not in player_data:
                     player_data[loser]=dict(wins=0, losses=0)
                 player_data[loser]['losses'] += 1
-        return [dict(('player', p)+d.items()) for p,d in player_data.items()]
+        return [dict([('player', p)]+d.items()) for p,d in player_data.items()]
 
 class BracketPath(models.Model):
     prev_match = models.ForeignKey("Match", related_name="prev_paths")
     qualifier = models.TextField(max_length=63)
     next_match = models.ForeignKey("Match", related_name="next_paths")
+    identifier = models.IntegerField()
 
 class Match(models.Model):
     collection = models.ForeignKey("Collection")
@@ -171,10 +171,11 @@ class Match(models.Model):
     def winner(self):
         left = self.wins['left']
         right = self.wins['right']
+        print left, right, self.best_of
         if left > right and left > self.best_of/2:
             return self.matchplayer_set.get(side="left")
         if right > left and right > self.best_of/2:
-            return self.matchplayer_set.get(side="left")
+            return self.matchplayer_set.get(side="right")
         return None
         
     def winning_side(self, winner_id):
@@ -191,11 +192,12 @@ class Match(models.Model):
         for game in self.games.all():
             if game.winner is None:
                 continue
-            if game.winner_id == left_player.get('player_id'):
+            if game.winner_id == left_player.player.id:
                 left_wins += 1
-            if game.winner_id == right_player.get('player_id'):
+            if game.winner_id == right_player.player.id:
                 right_wins += 1
         self._wins = dict(left=left_wins, right=right_wins)
+        print self._wins
         return self._wins
 
     @property
@@ -211,18 +213,19 @@ class Match(models.Model):
         if right_player_list:
             right_player = right_player_list[0]
         self._player_data = dict(
-            left = left_player and left_player.to_dict(),
-            right = right_player and right_player.to_dict(),
+            left = left_player,
+            right = right_player,
         )
         return self._player_data
 
     def to_dict(self):
         data = dict (
             wins = self.wins,
-            players = self.player_data,
+            players = dict((k,v and v.to_dict()) for k,v in self.player_data.items()),
             tournament = self.collection.tournament.name,
             collection = self.collection.name,
             best_of = self.best_of,
+            id = self.id,
         )
         return data;
     
@@ -234,6 +237,14 @@ class Match(models.Model):
             self.collection.tournament.slug,
             self.collection.slug,
             self.slug
+        ])
+
+    @property
+    def tournament_url(self):
+        return reverse('tournament-detail', args=[
+            self.collection.tournament.season.league.slug,
+            self.collection.tournament.season.slug,
+            self.collection.tournament.slug,
         ])
 
     @classmethod
@@ -252,6 +263,7 @@ class MatchPlayer(models.Model):
     side = models.CharField(max_length=63, choices=Players._choices)
     color = models.TextField(null=True)
     race = models.CharField(max_length=63, choices=Races._choices)
+    identifier = models.IntegerField()
 
     def to_dict(self):
         return dict (
@@ -355,7 +367,8 @@ class Map(models.Model):
         return dict(
             url = "%s%s" % (settings.MEDIA_URL, self.map_file),
             slug = self.slug,
-            name = self.name
+            name = self.name,
+            id = self.id
         )
 
     def __unicode__(self):

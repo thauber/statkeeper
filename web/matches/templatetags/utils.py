@@ -48,3 +48,8 @@ def for_sides(player_data, all_player_ids):
     return [(player_id, player_data.get(player_id)) for player_id in player_ids]
 register.filter('for_sides',for_sides)
 
+def partition(objects, size):
+    row_count = len(objects)/size+1
+    return [objects[size*i:size*(i+1)] for i in xrange(row_count)]
+
+register.filter('partition', partition)

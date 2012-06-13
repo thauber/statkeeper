@@ -45,11 +45,12 @@ def create_match(collection, best_of, matches=[], qualifiers=[], **kwargs):
         **kwargs
     )
 
-    for prev_match, qualifier in zip(matches, qualifiers):
+    for prev, qualifier, i in zip(matches, qualifiers, range(len(matches))):
         BracketPath.objects.create(
-            prev_match = prev_match,
+            prev_match = prev,
             qualifier = qualifier,
             next_match = match,
+            identifier = i,
         )
     return match
 

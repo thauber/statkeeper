@@ -7,6 +7,11 @@ ESB.Template = {
     }
 };
 ESB.Util = {
+    stopPropagation: function(e) {
+        var evt = e ? e:window.event;
+        if (evt.stopPropagation)    evt.stopPropagation();
+        if (evt.cancelBubble!=null) evt.cancelBubble = true;
+    },
     scrollToVisible: function (selector) {
         //TODO fix this
         var element = selector.first();
